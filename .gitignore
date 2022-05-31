@@ -1,0 +1,4 @@
+venv/
+.spyproject/
+__pycache__/
+instance/
