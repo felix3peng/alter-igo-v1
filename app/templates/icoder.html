@@ -27,9 +27,13 @@
                 }, function(data){
                     $('.content').append('<p>Command:</p>');
                     $('.content').append('<div><pre><code class="language-plaintext">'+data.outputs[1]+'</code></pre></div>');
-                    $('.content').append("<button data-toggle='collapse' class='cobutton' data-target='#code"+i+"'>Code:</button>");
-                    $('.content').append("<div class='collapse in' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div>");
-                    $('.content').append('<p>Output:</p>');
+                    if (document.getElementById('checkbox').checked) {
+                        $('.content').append("<button data-toggle='collapse' class='cobutton' data-target='#code"+i+"'>Code:</button>");
+                        $('.content').append("<div class='collapse in' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div>");
+                        $('.content').append('<p>Output ['+i+']:</p>');
+                    } else {
+                        $('.content').append('<p>Output ['+i+']:</p>');
+                    }
                     if (data.outputs[0] == 'image') {
                         $('.content').append('<div>'+data.outputs[3]+'</div>');
                     } else {
@@ -54,6 +58,28 @@
             });
         });
     </script>
+    <!--checkbox activator-->
+    <script type=text/javascript>
+        $('#showcode').change(function () {
+            if ($(this).is(":checked")) {
+                $('#table').show();
+            } else {
+                $('#table').hide();
+            }
+        });
+    </script>
+    <!--Script to trigger submit on Enter-->
+    <script type=text/javascript>
+        $(document).ready(function(){
+            $('#cmd').keydown(function(e){
+                if (e.keyCode == 13) {
+                    e.preventDefault();
+                    $('#submit').click();
+                    document.getElementById("cmd").value = "";
+                }
+            });
+        });
+    </script>
     <!--HTML for body of page-->
     <div class="top">
         <div class="cmdhead">
@@ -65,11 +91,15 @@
     </div>
     <div class="row">
         <div class="entry">
-            <textarea id="cmd" name="cmd"></textarea>
+            <input type="text" id="cmd" name="cmd">
             <br>
             <div class="btn-toolbar">
                 <button class="btn btn-primary" id="submit" type="button">Submit</button>
                 <button class="btn" id="clear" type="button">Clear Display</button>
+                <label for="#checkbox" class="checklabelcont">
+                    <input type="checkbox" id="checkbox" name="checkbox">
+                    <span class="checkbox-label">Show code</span>
+                </label>
             </div>
         </div>
         <div class="display">
