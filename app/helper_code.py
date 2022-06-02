@@ -7,7 +7,7 @@ def load_data():
     import os
     path = os.path.dirname(__file__)
     df = pd.read_csv(path+'./data.csv')
-    print('successfully loaded data.csv')
+    print(df.head())
 
 
 def summarize_data():

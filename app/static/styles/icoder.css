@@ -10,37 +10,15 @@ html, body {
     overflow-x: hidden;
 }
 
-.top {
-    height: 100px;
-    padding-left: 20px;
-    display: flex;
-    padding-top: 10px;
-}
-
-.cmdhead {
-    flex: 33%;
-}
-
-.disphead {
-    flex: 67%;
-}
-
-.row {
-    display: flex;
-    overflow: hidden;
-    height: 100%;
-    margin-top: -100px;
-    padding-top: 100px;
-    padding-left: 20px;
-    position: relative;
-    width: 100%;
-    backface-visibility: hidden;
-    will-change: overflow;
-}
-
 .entry,
 .display {
     overflow: auto;
+    overflow-x: hidden;
+    backface-visibility: hidden;
+    margin-top: 0px;
+    padding-left: 20px;
+    padding-top: 100px;
+    will-change: overflow;
     padding: .5rem;
     padding-left: 20px;
     -webkit-overflow-scrolling: touch;
@@ -48,13 +26,43 @@ html, body {
 }
 
 .entry {
-    flex: 33%;
+    height: 100%;
+    width: 33vw;
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    overflow-x: hidden;
+    /*transition: width 0.2s;*/
     padding-bottom: 10px;
     padding-top: 10px;
+    box-shadow: 0.5px 0px 0.5px gray;
+}
+
+.title-close-wrapper {
+    position: relative;
+    margin-bottom: 2rem;
+    display: flex;
+}
+
+.entry-title {
+    display: flex;
+    align-items: center;
+}
+
+.open-close-btn {
+    position: absolute;
+    margin-top: 24px;
+    right: 2rem;
+    background-color: transparent;
+    border: none;
+    width: 2rem;
+    height: 2rem;
+    cursor: pointer;
 }
 
 .display {
-    flex: 67%;
+    margin-left: 33vw;
+    padding-top: 10px;
 }
 
 #cmd {
@@ -100,4 +108,27 @@ h2 {
 
 .active, .cobutton:hover {
     background-color: #eeeeee;
+}
+
+.cobutton.collapsed:before {
+    content: 'Code hidden - click to expand';
+}
+
+.cobutton:before {
+    content: 'Code shown - click to hide';
+}
+
+.numlabel {
+    display: inline-block;
+    width: 3rem;
+    height: 1rem;
+}
+
+.output {
+    margin-top: 5px;
+    margin-left: 3rem;
+}
+
+.codewrapper {
+    margin-left: 3rem;
 }

@@ -3,6 +3,7 @@
 <head>
     <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/icoder.css') }}">
     <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/default.min.css') }}">
+    <link rel= "stylesheet" type= "text/css" href="https://unpkg.com/boxicons@2.1.2/css/boxicons.min.css" >
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf-8">
     <!-- Latest compiled and minified CSS -->
@@ -25,19 +26,14 @@
                 $.getJSON($SCRIPT_ROOT + '/process', {
                     command: $('#cmd').val(),
                 }, function(data){
-                    $('.content').append('<p>Command:</p>');
-                    $('.content').append('<div><pre><code class="language-plaintext">'+data.outputs[1]+'</code></pre></div>');
+                    $('.content').append('<div><span class="numlabel">['+i+']: </span><span><b>&lsquo;'+data.outputs[1]+'&rsquo;</b></span></div>');
                     if (document.getElementById('checkbox').checked) {
-                        $('.content').append("<button data-toggle='collapse' class='cobutton' data-target='#code"+i+"'>Code:</button>");
-                        $('.content').append("<div class='collapse in' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div>");
-                        $('.content').append('<p>Output ['+i+']:</p>');
-                    } else {
-                        $('.content').append('<p>Output ['+i+']:</p>');
+                        $('.content').append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton' data-target='#code"+i+"'></button><div class='collapse in' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
                     }
                     if (data.outputs[0] == 'image') {
-                        $('.content').append('<div>'+data.outputs[3]+'</div>');
+                        $('.content').append('<div class="output">'+data.outputs[3]+'</div>');
                     } else {
-                        $('.content').append('<div><pre><code class="language-plaintext">'+data.outputs[3]+'</code></pre></div>');
+                        $('.content').append('<div class="output"><pre><code class="language-plaintext">'+data.outputs[3]+'</code></pre></div>');
                     }
                     $('.content').append('<hr>');
                     hljs.highlightAll();
@@ -80,30 +76,61 @@
             });
         });
     </script>
+    <!--Script for sidebar activation-->
+    <script type=text/javascript>
+        $(document).ready(function() {
+            var sideBar = document.getElementById('entry');
+            var arrBtn = document.getElementById('open-close-btn');
+            var arrIco = document.getElementById('arrowIcon');
+            var hideOnShrink = document.getElementById('entry-main-content');
+            var entryTitle = document.getElementById('entry-title');
+            var mainDiv = document.getElementById('display');
+            $('#open-close-btn').click(function() {
+                if (arrIco.classList == "bx bx-arrow-from-right") {
+                    arrIco.classList = "bx bx-arrow-from-left";
+                    sideBar.style.width = "6rem";
+                    hideOnShrink.style.opacity = "0";
+                    entryTitle.style.opacity = "0";
+                    mainDiv.style.marginLeft = "6rem";
+                } else {
+                    arrIco.classList = "bx bx-arrow-from-right";
+                    sideBar.style.width = "33vw";
+                    hideOnShrink.style.opacity = "1";
+                    entryTitle.style.opacity = "1";
+                    mainDiv.style.marginLeft = "33vw";
+                };
+            });
+        });
+    </script>
     <!--HTML for body of page-->
-    <div class="top">
-        <div class="cmdhead">
-            <h2>Command Entry</h2>
+    <!--Sidebar that collapses to the left edge-->
+    <div class="entry" id="entry">
+        <div class="title-close-wrapper">
+            <div class="entry-title" id="entry-title">
+                <span class="entry-header">
+                    <h3>Say what you want in plain English:</h3>
+                </span>
+            </div>
+            <button class="open-close-btn" id="open-close-btn">
+                <i class="bx bx-arrow-from-right" id="arrowIcon"></i>
+            </button>
         </div>
-        <div class="disphead">
-            <h2>Code & Output Display</h2>
-        </div>
-    </div>
-    <div class="row">
-        <div class="entry">
+        <div class="entry-main-content" id="entry-main-content">
             <input type="text" id="cmd" name="cmd">
             <br>
             <div class="btn-toolbar">
                 <button class="btn btn-primary" id="submit" type="button">Submit</button>
-                <button class="btn" id="clear" type="button">Clear Display</button>
+                <button class="btn" id="clear" type="button">Reset</button>
                 <label for="#checkbox" class="checklabelcont">
                     <input type="checkbox" id="checkbox" name="checkbox">
                     <span class="checkbox-label">Show code</span>
                 </label>
             </div>
         </div>
-        <div class="display">
-            <div class="content"></div>
-        </div>
+    </div>
+<!--Main content-->
+    <div class="display" id="display">
+        <h3>Code & Output Display</h3>
+        <div class="content"></div>
     </div>
 </body>
