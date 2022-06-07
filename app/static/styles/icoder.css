@@ -51,13 +51,17 @@ html, body {
 
 .open-close-btn {
     position: absolute;
-    margin-top: 24px;
+    margin-top: 22px;
     right: 2rem;
     background-color: transparent;
     border: none;
     width: 2rem;
     height: 2rem;
     cursor: pointer;
+}
+
+#arrowIcon {
+    font-size: 2rem;
 }
 
 .display {
@@ -67,7 +71,7 @@ html, body {
 
 #cmd {
     width: 96%;
-    height: 20%;
+    height: 20vh;
     padding: 8px;
 }
 
@@ -111,11 +115,11 @@ h2 {
 }
 
 .cobutton.collapsed:before {
-    content: 'Code hidden - click to expand';
+    content: 'Click to view code';
 }
 
 .cobutton:before {
-    content: 'Code shown - click to hide';
+    content: 'Click to hide code';
 }
 
 .numlabel {

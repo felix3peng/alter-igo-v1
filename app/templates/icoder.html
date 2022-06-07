@@ -29,6 +29,8 @@
                     $('.content').append('<div><span class="numlabel">['+i+']: </span><span><b>&lsquo;'+data.outputs[1]+'&rsquo;</b></span></div>');
                     if (document.getElementById('checkbox').checked) {
                         $('.content').append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton' data-target='#code"+i+"'></button><div class='collapse in' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
+                    } else {
+                        $('.content').append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton collapsed' data-target='#code"+i+"'></button><div class='collapse' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
                     }
                     if (data.outputs[0] == 'image') {
                         $('.content').append('<div class="output">'+data.outputs[3]+'</div>');
