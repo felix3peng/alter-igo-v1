@@ -185,12 +185,31 @@ s27 = '''from sklearn.metrics import mean_squared_error
 y_pred = model.predict(X_test)
 model_rmse = mean_squared_error(y_test, y_pred, squared=False)
 print("Test RMSE: ", model_rmse)'''
-# get shape of data
+# get shape of data, no args
 s28 = '''print(df.shape)'''
-# get number of rows
+# get number of rows, no args
 s29 = '''print(len(df))'''
-# get number of columns
+# get number of columns, no args
 s30 = '''print(df.shape[1])'''
+# remove a feature, 1 feature args
+s31 = '''X.drop(columns=['{0}'], inplace=True)'''
+# remove features, 2 feature args
+s32 = '''X.drop(columns=['{0}', '{1}'], inplace=True)'''
+# add a log of a feature, 1 feature args
+s33 = '''import numpy as np
+X['{1}'] = np.log(X['{0}'])'''
+# show X
+s34 = '''print(X.head())'''
+# show X_train
+s35 = '''print(X_train.head())'''
+# show X_test
+s36 = '''print(X_test.head())'''
+# show y
+s37 = '''print(y.head())'''
+# show y_train
+s38 = '''print(y_train.head())'''
+# show y_test
+s39 = '''print(y_test.head())'''
 
 cc_dict = {'load data': s1,
            'summarize data': s2,
@@ -204,6 +223,8 @@ cc_dict = {'load data': s1,
            'correlation of f1 and f2': s5,
            'what is the correlation between f1 and f2': s5,
            'what is the correlation of f1 and f2': s5,
+           'calculate correlation between f1 and f2': s5,
+           'calculate correlation of f1 and f2': s5,
            'show correlation heatmap': s6,
            'heatmap of correlations': s6,
            'plot histogram of feature': s7,
@@ -218,8 +239,10 @@ cc_dict = {'load data': s1,
            'train an XGBoost model': s11,
            'xgboost model': s11,
            'train a random forest model': s12,
+           'train a rf model': s12,
            'random forest': s12,
            'train a logistic regression model': s13,
+           'train a log model': s13,
            'log reg model': s13,
            'calculate R2 score': s14,
            'show model r2': s14,
@@ -234,6 +257,9 @@ cc_dict = {'load data': s1,
            'show shap interaction between f1 and f2': s18,
            'what is the shap interaction of f1 and f2': s18,
            'calculate model performance': s19,
+           'what is the performance of RF': s19,
+           'what is the performance of log reg': s19,
+           'what is the performance of xgboost': s19,
            'how good is the model': s19,
            'what is the model accuracy': s19,
            'train a random forest model with x trees': s20,
@@ -263,7 +289,25 @@ cc_dict = {'load data': s1,
            'how many columns are there': s30,
            'how many features are there': s30,
            'number of columns': s30,
-           'number of features': s30}
+           'number of features': s30,
+           'drop feature': s31,
+           'delete feature': s31,
+           'remove feature': s31,
+           'drop feature and feature': s32,
+           'remove feature and feature': s32,
+           'delete feature and feature': s32,
+           'create new feature, log of feat and name it new_feat': s33,
+           'take log of feat and call it new_feat': s33,
+           'print X': s34,
+           'show me X': s34,
+           'show X': s34,
+           'show X_train': s35,
+           'show X_test': s36,
+           'show me y': s37,
+           'show y': s37,
+           'print y': s37,
+           'show y_train': s38,
+           'show y_test': s39}
 
 '''
 EMBEDDINGS
@@ -302,22 +346,24 @@ ldict = {}
 
 
 # helper function for running code stored in dictionary
+# passing on KeyErrors when re-running due to column drop errors
 def runcode(text, args=None):
     # turn off plotting and run function, try to grab fig and save in buffer
+    tldict = ldict.copy()
     plt.ioff()
     if args is None:
         try:
-            exec(cc_dict[text], ldict)
+            exec(cc_dict[text], tldict)
         except:
             print('something went wrong. ensure target & train-test split set')
     elif len(args) == 1:
         try:
-            exec(cc_dict[text].format(args[0]), ldict)
+            exec(cc_dict[text].format(args[0]), tldict)
         except:
             print('something went wrong. ensure target & train-test split set')
     else:
         try:
-            exec(cc_dict[text].format(*args), ldict)
+            exec(cc_dict[text].format(*args), tldict)
         except:
             print('something went wrong. ensure target & train-test split set')
     fig = plt.gcf()
@@ -338,11 +384,15 @@ def runcode(text, args=None):
         elif len(args) == 1:
             try:
                 exec(cc_dict[text].format(args[0]), ldict)
+            except KeyError:
+                pass
             except:
                 print('something went wrong. ensure target & train-test split set')
         else:
             try:
                 exec(cc_dict[text].format(*args), ldict)
+            except KeyError:
+                pass
             except:
                 print('something went wrong. ensure target & train-test split set')
         output = new_stdout.getvalue()
@@ -355,6 +405,7 @@ def runcode(text, args=None):
         data = base64.b64encode(buf.getbuffer()).decode("ascii")
         output = f"<img src='data:image/png;base64,{data}'/>"
         outputtype = 'image'
+        ldict.update(tldict)
         return [outputtype, output]
 
 
@@ -382,7 +433,7 @@ def process():
     extra_args = []
 
     # check for any feature names
-    feat_params = [a for a in command.split() if a.isupper()]
+    feat_params = [a.strip() for a in command.split() if a.isupper()]
     if len(feat_params) > 0:
         extra_args.extend(feat_params)
 
@@ -407,6 +458,7 @@ def process():
         cmd_embed = get_embedding(lcommand)
         sims = [cosine_similarity(cmd_embed, x) for x in embedding_cache]
         ind = np.argmax(sims)
+        print('\n\nEntered: ', command)
         print('Best match similarity: ', np.max(sims))
         print('Best match command: ', list(cc_dict.keys())[ind])
         # set cmd_match flag to False if best similarity is 0.80 or less
