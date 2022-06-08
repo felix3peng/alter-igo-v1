@@ -197,10 +197,12 @@ cc_dict = {'load data': s1,
            'describe data': s2,
            'get feature names': s3,
            'what are the features': s3,
+           'what are the columns': s3,
            'get column names': s3,
            'set feature as target': s4,
            'get correlation between f1 and f2': s5,
            'correlation of f1 and f2': s5,
+           'what is the correlation between f1 and f2': s5,
            'what is the correlation of f1 and f2': s5,
            'show correlation heatmap': s6,
            'heatmap of correlations': s6,
@@ -220,9 +222,11 @@ cc_dict = {'load data': s1,
            'train a logistic regression model': s13,
            'log reg model': s13,
            'calculate R2 score': s14,
+           'show model r2': s14,
            'what is the r2 score': s14,
            'calculate MAE score': s15,
            'what is the mae score': s15,
+           'show model mae': s15,
            'show the feature importance': s16,
            'what is the feature importance': s16,
            'show shap feature importances': s17,
@@ -244,6 +248,8 @@ cc_dict = {'load data': s1,
            'mae test': s24,
            'calculate RMSE score': s25,
            'what is the rmse': s25,
+           'get rmse score': s25,
+           'show model rmse': s25,
            'calculate RMSE score on train': s26,
            'rmse train': s26,
            'calculate RMSE score on test': s27,
@@ -401,13 +407,16 @@ def process():
         cmd_embed = get_embedding(lcommand)
         sims = [cosine_similarity(cmd_embed, x) for x in embedding_cache]
         ind = np.argmax(sims)
-        print(np.max(sims))
-        # set cmd_match flag to False if best similarity is 0.9 or less
-        if np.max(sims) <= 0.89:
+        print('Best match similarity: ', np.max(sims))
+        print('Best match command: ', list(cc_dict.keys())[ind])
+        # set cmd_match flag to False if best similarity is 0.80 or less
+        if np.max(sims) <= 0.80:
             cmd_match = False
+            print('Best match rejected\n')
         else:
             cmd = list(cc_dict.keys())[ind]
             code = list(cc_dict.values())[ind]
+            print('Best match accepted\n')
     else:
         cmd = command.lower()
         code = cc_dict[cmd]
@@ -415,8 +424,6 @@ def process():
     # supplement cmd with parameters (if applicable) and pass to runcode
     if cmd_match == True:
         argtuple = tuple(extra_args)
-        print(cmd, '\n')
-        print(argtuple, '\n')
         if len(argtuple) == 1:
             codeblock = code.format(argtuple[0])
         else:
