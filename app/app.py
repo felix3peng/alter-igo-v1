@@ -210,6 +210,13 @@ s37 = '''print(y.head())'''
 s38 = '''print(y_train.head())'''
 # show y_test
 s39 = '''print(y_test.head())'''
+# add a log feature of every feature
+s40 = '''import numpy as np
+Xlog = X.apply(np.log)
+Xlog.columns = ['LOG_' + x for x in X.columns]
+X = pd.concat([X, Xlog], axis=1)'''
+# add a multiplicative interaction column of two features
+s41 = '''X['{2}'] = X['{0}'] * X['{1}']'''
 
 cc_dict = {'load data': s1,
            'summarize data': s2,
@@ -307,7 +314,12 @@ cc_dict = {'load data': s1,
            'show y': s37,
            'print y': s37,
            'show y_train': s38,
-           'show y_test': s39}
+           'show y_test': s39,
+           'create new features, log of every feature': s40,
+           'take the log of every feature': s40,
+           'create new feature, product of feat and feat and call it new_feat': s41,
+           'take product of feat and feat and call it new_feat': s41,
+           'multiple feat and feat and call it new_feat': s41}
 
 '''
 EMBEDDINGS
