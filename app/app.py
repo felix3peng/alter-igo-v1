@@ -445,7 +445,7 @@ def process():
     extra_args = []
 
     # check for any feature names
-    feat_params = [a.strip() for a in command.split() if a.isupper()]
+    feat_params = [a.strip().replace(',', '') for a in command.split() if a.isupper()]
     if len(feat_params) > 0:
         extra_args.extend(feat_params)
 
