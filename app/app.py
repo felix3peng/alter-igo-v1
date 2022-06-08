@@ -445,7 +445,11 @@ def process():
     extra_args = []
 
     # check for any feature names
-    feat_params = [a.strip().replace(',', '') for a in command.split() if a.isupper()]
+    feat_params = [a.strip() for a in command.split() if a.isupper()]
+    # strip commas and quotes from feature names
+    feat_params = [a.replace(',', '') for a in feat_params]
+    feat_params = [a.replace('"', '') for a in feat_params]
+    feat_params = [a.replace("'", '') for a in feat_params]
     if len(feat_params) > 0:
         extra_args.extend(feat_params)
 
