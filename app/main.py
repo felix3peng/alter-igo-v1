@@ -357,17 +357,16 @@ FLASK APPLICATION CODE & ROUTES
 '''
 # set up flask application
 app = Flask(__name__)
+app.config.update(
+    TESTING=True,
+    SECRET_KEY='its-a-secret'
+)
 
 
 # base route to display main html body
 @app.route('/', methods=["GET", "POST"])
 def home():
     return render_template('icoder.html')
-
-
-# run app in debug mode
-if __name__ == "__main__":
-    app.run(debug=True)
 
 
 # create a function to read form inputs and process a set of outputs in json
@@ -397,30 +396,37 @@ def process():
         extra_args.extend(num_params)
 
     # check if command is in the dictionary keys; if not, match via embedding
+    cmd_match = True
     if lcommand not in list(cc_dict.keys()):
         cmd_embed = get_embedding(lcommand)
         sims = [cosine_similarity(cmd_embed, x) for x in embedding_cache]
         ind = np.argmax(sims)
-        print(np.max(sims))
-        cmd = list(cc_dict.keys())[ind]
-        code = list(cc_dict.values())[ind]
+        # set cmd_match flag to False if best similarity is 0.9 or less
+        if np.max(sims) <= 0.91:
+            cmd_match = False
+        else:
+            cmd = list(cc_dict.keys())[ind]
+            code = list(cc_dict.values())[ind]
     else:
         cmd = command.lower()
         code = cc_dict[cmd]
 
     # supplement cmd with parameters (if applicable) and pass to runcode
-    argtuple = tuple(extra_args)
-    print(cmd, '\n')
-    print(argtuple, '\n')
-    if len(argtuple) == 1:
-        codeblock = code.format(argtuple[0])
-    else:
-        codeblock = code.format(*argtuple)
-    print(codeblock, '\n')
-    if len(argtuple) > 0:
-        [outputtype, output] = runcode(cmd, argtuple)
-    else:
-        [outputtype, output] = runcode(cmd)
-    outputs = [outputtype, command, codeblock, output]
+    if cmd_match == True:
+        argtuple = tuple(extra_args)
+        print(cmd, '\n')
+        print(argtuple, '\n')
+        if len(argtuple) == 1:
+            codeblock = code.format(argtuple[0])
+        else:
+            codeblock = code.format(*argtuple)
+        print(codeblock, '\n')
+        if len(argtuple) > 0:
+            [outputtype, output] = runcode(cmd, argtuple)
+        else:
+            [outputtype, output] = runcode(cmd)
+        outputs = [outputtype, command, codeblock, output]
+    elif cmd_match == False:
+        outputs = ['string', command, '', 'No matching command found']
 
     return jsonify(outputs=outputs)

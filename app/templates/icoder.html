@@ -39,6 +39,9 @@
                     } else if (data.outputs[3] !== "") {
                         $('.content').append('<div class="output"><pre><code class="language-plaintext">'+data.outputs[3]+'</code></pre></div>');
                     }
+                    if (data.outputs[2] == '') {
+                        alert("Sorry, I couldn't understand your request.");
+                    }
                     $('.content').append('<hr>');
                     hljs.highlightAll();
                     document.getElementById("cmd").value = "";
