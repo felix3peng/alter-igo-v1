@@ -199,9 +199,9 @@ cc_dict = {'load data': s1,
            'what are the features': s3,
            'get column names': s3,
            'set feature as target': s4,
-           'target feature': s4,
            'get correlation between f1 and f2': s5,
            'correlation of f1 and f2': s5,
+           'what is the correlation of f1 and f2': s5,
            'show correlation heatmap': s6,
            'heatmap of correlations': s6,
            'plot histogram of feature': s7,
@@ -401,8 +401,9 @@ def process():
         cmd_embed = get_embedding(lcommand)
         sims = [cosine_similarity(cmd_embed, x) for x in embedding_cache]
         ind = np.argmax(sims)
+        print(np.max(sims))
         # set cmd_match flag to False if best similarity is 0.9 or less
-        if np.max(sims) <= 0.91:
+        if np.max(sims) <= 0.89:
             cmd_match = False
         else:
             cmd = list(cc_dict.keys())[ind]
