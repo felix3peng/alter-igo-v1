@@ -26,21 +26,23 @@
                 $.getJSON($SCRIPT_ROOT + '/process', {
                     command: $('#cmd').val(),
                 }, function(data){
-                    $('.content').append('<div><span class="numlabel">['+i+']: </span><span><b>&lsquo;'+data.outputs[1]+'&rsquo;</b></span></div>');
+                    $('.content').append('<div><span class="numlabel">['+i+']: </span><span><b>'+data.outputs[1]+'</b></span></div>');
                     if (document.getElementById('checkbox').checked) {
+                        $('.content').append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton' data-target='#code"+i+"'></button><div class='collapse in' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
+                    } else if (data.outputs[3] == "") {
                         $('.content').append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton' data-target='#code"+i+"'></button><div class='collapse in' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
                     } else {
                         $('.content').append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton collapsed' data-target='#code"+i+"'></button><div class='collapse' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
                     }
                     if (data.outputs[0] == 'image') {
                         $('.content').append('<div class="output">'+data.outputs[3]+'</div>');
-                    } else {
+                    } else if (data.outputs[3] !== "") {
                         $('.content').append('<div class="output"><pre><code class="language-plaintext">'+data.outputs[3]+'</code></pre></div>');
                     }
                     $('.content').append('<hr>');
                     hljs.highlightAll();
                     document.getElementById("cmd").value = "";
-                    $(".display").scrollTop(function() { return this.scrollHeight; });
+                    $('html,body').animate({scrollTop: document.body.scrollHeight},"fast");
                 });
             i++;
             });
@@ -118,7 +120,7 @@
             </button>
         </div>
         <div class="entry-main-content" id="entry-main-content">
-            <input type="text" id="cmd" name="cmd">
+            <input type="text" id="cmd" name="cmd" autocomplete="off">
             <br>
             <div class="btn-toolbar">
                 <button class="btn btn-primary" id="submit" type="button">Submit</button>
@@ -127,12 +129,15 @@
                     <input type="checkbox" id="checkbox" name="checkbox">
                     <span class="checkbox-label">Show code</span>
                 </label>
+                <p id="showcode-disclaimer"><i>Code will automatically be shown if there is no output</i></p>
             </div>
         </div>
     </div>
 <!--Main content-->
     <div class="display" id="display">
-        <h3>Code & Output Display</h3>
-        <div class="content"></div>
+        <div class="header" id="header">
+            <h3>Code & Output Display</h3>
+        </div>
+        <div class="content" id="content"></div>
     </div>
 </body>

@@ -136,3 +136,21 @@ h2 {
 .codewrapper {
     margin-left: 3rem;
 }
+
+.header {
+    position: fixed;
+    top: 0;
+    height: 100px;
+    width: 100%;
+    background-color: white;
+    opacity: 1;
+    padding-top: 10px;
+}
+
+.content {
+    margin-top: 100px;
+}
+
+#showcode-disclaimer {
+    padding-left: 5px;
+}
