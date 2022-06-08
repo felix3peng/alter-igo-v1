@@ -185,34 +185,79 @@ s27 = '''from sklearn.metrics import mean_squared_error
 y_pred = model.predict(X_test)
 model_rmse = mean_squared_error(y_test, y_pred, squared=False)
 print("Test RMSE: ", model_rmse)'''
+# get shape of data
+s28 = '''print(df.shape)'''
+# get number of rows
+s29 = '''print(len(df))'''
+# get number of columns
+s30 = '''print(df.shape[1])'''
 
 cc_dict = {'load data': s1,
            'summarize data': s2,
+           'describe data': s2,
            'get feature names': s3,
+           'what are the features': s3,
+           'get column names': s3,
            'set feature as target': s4,
+           'target feature': s4,
            'get correlation between f1 and f2': s5,
+           'correlation of f1 and f2': s5,
            'show correlation heatmap': s6,
+           'heatmap of correlations': s6,
            'plot histogram of feature': s7,
+           'show density of feature': s7,
+           'show distribution of feature': s7,
            'show scatter plot of f1 and f2': s8,
+           'distribution of f1 and f2': s8,
            'get target name': s9,
+           'what is the target': s9,
            'train test split of given ratio': s10,
+           'do a ratio ratio train test split': s10,
            'train an XGBoost model': s11,
+           'xgboost model': s11,
            'train a random forest model': s12,
+           'random forest': s12,
            'train a logistic regression model': s13,
+           'log reg model': s13,
            'calculate R2 score': s14,
+           'what is the r2 score': s14,
            'calculate MAE score': s15,
-           'show feature importances': s16,
+           'what is the mae score': s15,
+           'show the feature importance': s16,
+           'what is the feature importance': s16,
            'show shap feature importances': s17,
+           'what is the shap feature importance': s17,
            'show shap interaction between f1 and f2': s18,
+           'what is the shap interaction of f1 and f2': s18,
            'calculate model performance': s19,
+           'how good is the model': s19,
+           'what is the model accuracy': s19,
            'train a random forest model with x trees': s20,
+           'random forest with x trees': s20,
            'calculate R2 score on train': s21,
+           'r2 train': s21,
            'calculate R2 score on test': s22,
+           'r2 test': s22,
            'calculate MAE score on train': s23,
+           'mae train': s23,
            'calculate MAE score on test': s24,
+           'mae test': s24,
            'calculate RMSE score': s25,
+           'what is the rmse': s25,
            'calculate RMSE score on train': s26,
-           'calculate RMSE score on test': s27}
+           'rmse train': s26,
+           'calculate RMSE score on test': s27,
+           'rmse test': s27,
+           'get shape of data': s28,
+           'what is the shape of the data': s28,
+           'how many rows are there': s29,
+           'number of rows': s29,
+           'how many records are there': s29,
+           'number of records': s29,
+           'how many columns are there': s30,
+           'how many features are there': s30,
+           'number of columns': s30,
+           'number of features': s30}
 
 '''
 EMBEDDINGS
@@ -356,6 +401,7 @@ def process():
         cmd_embed = get_embedding(lcommand)
         sims = [cosine_similarity(cmd_embed, x) for x in embedding_cache]
         ind = np.argmax(sims)
+        print(np.max(sims))
         cmd = list(cc_dict.keys())[ind]
         code = list(cc_dict.values())[ind]
     else:
