@@ -217,6 +217,8 @@ Xlog.columns = ['LOG_' + x for x in X.columns]
 X = pd.concat([X, Xlog], axis=1)'''
 # add a multiplicative interaction column of two features
 s41 = '''X['{2}'] = X['{0}'] * X['{1}']'''
+# show columns of X
+s42 = '''print(list(X.columns))'''
 
 cc_dict = {'load data': s1,
            'summarize data': s2,
@@ -243,50 +245,56 @@ cc_dict = {'load data': s1,
            'what is the target': s9,
            'train test split of given ratio': s10,
            'do a ratio ratio train test split': s10,
-           'train an XGBoost model': s11,
+           'train an xgboost model': s11,
            'xgboost model': s11,
            'train a random forest model': s12,
            'train a rf model': s12,
            'random forest': s12,
            'train a logistic regression model': s13,
            'train a log model': s13,
-           'log reg model': s13,
-           'calculate R2 score': s14,
+           'calculate r2 score': s14,
+           'calculate r2 on train and test': s14,
            'show model r2': s14,
            'what is the r2 score': s14,
-           'calculate MAE score': s15,
+           'calculate mae score': s15,
            'what is the mae score': s15,
+           'calculate mae on train and test': s15,
            'show model mae': s15,
            'show the feature importance': s16,
            'what is the feature importance': s16,
            'show shap feature importances': s17,
            'what is the shap feature importance': s17,
            'show shap interaction between f1 and f2': s18,
+           'shap interaction plot between f1 and f2': s18,
            'what is the shap interaction of f1 and f2': s18,
            'calculate model performance': s19,
-           'what is the performance of RF': s19,
+           'caclulate performance of model on train and test': s19,
+           'what is the performance of rf': s19,
            'what is the performance of log reg': s19,
            'what is the performance of xgboost': s19,
            'how good is the model': s19,
            'what is the model accuracy': s19,
            'train a random forest model with x trees': s20,
            'random forest with x trees': s20,
-           'calculate R2 score on train': s21,
+           'calculate r2 score on train': s21,
            'r2 train': s21,
-           'calculate R2 score on test': s22,
+           'calculate r2 score on test': s22,
            'r2 test': s22,
-           'calculate MAE score on train': s23,
+           'calculate mae score on train': s23,
            'mae train': s23,
-           'calculate MAE score on test': s24,
+           'calculate mae score on test': s24,
            'mae test': s24,
-           'calculate RMSE score': s25,
+           'calculate rmse score': s25,
            'what is the rmse': s25,
            'get rmse score': s25,
            'show model rmse': s25,
-           'calculate RMSE score on train': s26,
+           'calculate rmse on train and test': s25,
+           'calculate rmse score on train': s26,
            'rmse train': s26,
-           'calculate RMSE score on test': s27,
+           'what is rmse on train': s26,
+           'calculate rmse score on test': s27,
            'rmse test': s27,
+           'what is rmse on test': s27,
            'get shape of data': s28,
            'what is the shape of the data': s28,
            'how many rows are there': s29,
@@ -305,11 +313,11 @@ cc_dict = {'load data': s1,
            'delete feature and feature': s32,
            'create new feature, log of feat and name it new_feat': s33,
            'take log of feat and call it new_feat': s33,
-           'print X': s34,
-           'show me X': s34,
-           'show X': s34,
-           'show X_train': s35,
-           'show X_test': s36,
+           'print x': s34,
+           'show me x': s34,
+           'show x': s34,
+           'show x_train': s35,
+           'show x_test': s36,
            'show me y': s37,
            'show y': s37,
            'print y': s37,
@@ -319,7 +327,10 @@ cc_dict = {'load data': s1,
            'take the log of every feature': s40,
            'create new feature, product of feat and feat and call it new_feat': s41,
            'take product of feat and feat and call it new_feat': s41,
-           'multiple feat and feat and call it new_feat': s41}
+           'multiple feat and feat and call it new_feat': s41,
+           'what are the columns of x': s42,
+           'column names of x': s42,
+           'features of x': s42}
 
 '''
 EMBEDDINGS
@@ -450,6 +461,21 @@ def process():
     feat_params = [a.replace(',', '') for a in feat_params]
     feat_params = [a.replace('"', '') for a in feat_params]
     feat_params = [a.replace("'", '') for a in feat_params]
+    # remove X if it is in the param list
+    try:
+        feat_params.remove('X')
+    except ValueError:
+        pass
+    # remove MAE if it is present
+    try:
+        feat_params.remove('MAE')
+    except ValueError:
+        pass
+    # remove RMSE if it is present
+    try:
+        feat_params.remove('RMSE')
+    except ValueError:
+        pass
     if len(feat_params) > 0:
         extra_args.extend(feat_params)
 
