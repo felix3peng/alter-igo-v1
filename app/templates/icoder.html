@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-    <title>Interactive Coder</title>
+    <title>Alter Igo: Talk to your Data</title>
 </head>
 <body>
     <script type=text/javascript src="{{ url_for('static', filename='jquery.js') }}"></script>
@@ -22,6 +22,8 @@
     <script type=text/javascript>
         $(document).ready(function(){
             var i=0;
+            var nt=0;
+            var np=0;
             $('#submit').click(function(){
                 $.getJSON($SCRIPT_ROOT + '/process', {
                     command: $('#cmd').val(),
@@ -36,6 +38,13 @@
                     }
                     if (data.outputs[0] == 'image') {
                         $('.content').append('<div class="output">'+data.outputs[3]+'</div>');
+                        var imgsrc = document.getElementById('image'+np).src;
+                        $('.content').append("<div class='dl_btn'><a href="+imgsrc+" download='image"+np+"'>Download as PNG</a></div>");
+                        np++;
+                    } else if (data.outputs[0] == 'dataframe') {
+                        $('.content').append("<div class='output'>"+data.outputs[3]+"</div>");
+                        $('.content').append("<div class='dl_btn'><a href='#' onclick='download_table_as_csv("+'table'+nt+");'>Download as CSV</a></div>")
+                        nt++;
                     } else if (data.outputs[3] !== "") {
                         $('.content').append('<div class="output"><pre><code class="language-plaintext">'+data.outputs[3]+'</code></pre></div>');
                     }
@@ -110,6 +119,34 @@
             });
         });
     </script>
+    <!--Download table as csv on button click-->
+    <script type=text/javascript>
+        function download_table_as_csv(table_id) {
+            var rows = document.querySelectorAll('#'+table_id.id+' tr');
+            var csv = [];
+            for (var i = 0; i < rows.length; i++) {
+                var row = [], cols = rows[i].querySelectorAll('td, th');
+                for (var j = 0; j < cols.length; j++) {
+                    var data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ')
+                    data = data.replace(/"/g, '""');
+                    // Push escaped string
+                    row.push('"' + data + '"');
+                }
+                csv.push(row.join(','));
+            }
+            var csv_string = csv.join('\n');
+
+            var filename = 'export_' + table_id.id + '.csv';
+            var link = document.createElement('a');
+            link.style.display = 'none';
+            link.setAttribute('target', '_blank');
+            link.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv_string));
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
     <!--HTML for body of page-->
     <!--Sidebar that collapses to the left edge-->
     <div class="entry" id="entry">
@@ -119,22 +156,29 @@
                     <h3>Say what you want in plain English:</h3>
                 </span>
             </div>
-            <button class="open-close-btn" id="open-close-btn">
+            <button class="open-close-btn" id="open-close-btn" title="Collapse or expand sidebar">
                 <i class="bx bx-arrow-from-right" id="arrowIcon"></i>
             </button>
         </div>
         <div class="entry-main-content" id="entry-main-content">
-            <input type="text" id="cmd" name="cmd" autocomplete="off">
-            <br>
-            <div class="btn-toolbar">
-                <button class="btn btn-primary" id="submit" type="button">Submit</button>
-                <button class="btn" id="clear" type="button">Reset</button>
-                <label for="#checkbox" class="checklabelcont">
-                    <input type="checkbox" id="checkbox" name="checkbox">
-                    <span class="checkbox-label">Show code</span>
-                </label>
-                <p id="showcode-disclaimer"><i>Code will automatically be shown if there is no output</i></p>
+            <div class="textarea-and-btns">
+                <input type="text" id="cmd" name="cmd" autocomplete="off">
+                <br>
+                <div class="btn-toolbar">
+                    <button class="btn btn-primary" id="submit" type="button" title="Submit query">
+                        <i class="bx bx-right-arrow-alt" id="submit-icon"></i>
+                    </button>
+                    <button class="btn" id="clear" type="button" title="Clear display">
+                        <i class="bx bx-refresh" id="refresh-icon"></i>
+                    </button>
+                </div>
             </div>
+            <br>
+            <label for="#checkbox" class="checklabelcont">
+                <input type="checkbox" id="checkbox" name="checkbox">
+                <span class="checkbox-label">Show code</span>
+            </label>
+            <p id="showcode-disclaimer"><i>Code will automatically be shown if there is no output</i></p>
         </div>
     </div>
 <!--Main content-->

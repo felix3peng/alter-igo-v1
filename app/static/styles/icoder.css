@@ -49,19 +49,33 @@ html, body {
     align-items: center;
 }
 
-.open-close-btn {
-    position: absolute;
-    margin-top: 22px;
-    right: 2rem;
-    background-color: transparent;
-    border: none;
-    width: 2rem;
-    height: 2rem;
-    cursor: pointer;
+.entry-header {
+    position: relative;
+    margin-right: 4rem;
 }
 
-#arrowIcon {
+.open-close-btn {
+    position: absolute;
+    margin-top: 20px;
+    right: 1rem;
+    background-color: white;
+    border: none;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 3rem;
+    cursor: pointer;
+    align-items: center;
+    z-index: 1;
+    padding: 0px;
+}
+
+#arrowIcon,
+#submit-icon,
+#refresh-icon {
+    vertical-align: middle;
     font-size: 2rem;
+    text-align: center;
+    padding: 0px;
 }
 
 .display {
@@ -75,17 +89,39 @@ html, body {
     padding: 8px;
 }
 
+.textarea-and-btns {
+    position: relative;
+}
+
+.btn-toolbar {
+    z-index: 100;
+    position: absolute;
+    bottom: 4px;
+    right: 6%;
+    display: flex;
+}
+
 #submit {
-    width: 95%;
+    width: 4rem;
     height: 4rem;
+    border-radius: 2rem;
     margin: 5px;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0px;
+    background-color: green;
 }
 
 #clear {
-    width: 95%;
+    width: 4rem;
     height: 4rem;
-    margin: auto;
+    border-radius: 2rem;
     margin: 5px;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0px;
 }
 
 #checkbox {
@@ -131,6 +167,13 @@ h2 {
 .output {
     margin-top: 5px;
     margin-left: 3rem;
+    overflow-x: auto;
+    margin-right: 5px;
+}
+
+.dl_btn {
+    margin-left: 3rem;
+    margin-top: 5px;
 }
 
 .codewrapper {
@@ -153,4 +196,17 @@ h2 {
 
 #showcode-disclaimer {
     padding-left: 5px;
+}
+
+.table {
+    border-collapse: collapse;
+    border: none;
+}
+
+td, th {
+    border: none;
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2;
 }
