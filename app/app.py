@@ -22,8 +22,10 @@ from matplotlib.figure import Figure
 import base64
 import sys
 import re
+from datetime import datetime
 from PIL import Image
 import openai
+openai.api_key = os.getenv('OPENAI_API_KEY')
 from openai.embeddings_utils import get_embeddings, distances_from_embeddings
 from openai.embeddings_utils import get_embedding, cosine_similarity
 import pickle
@@ -446,6 +448,14 @@ def runcode(text, args=None):
         return [outputtype, output]
 
 
+# log results in log.csv
+def log_commands(outputs):
+    # unpack outputs into variables
+    otype, cmd, code, output = outputs
+    with open('log.csv', 'a') as log_file:
+        log_file.write(str(datetime.now()) + '\n\n' + str(cmd) + '\n\n' + str(otype) + '\n\n' + str(code) + '\n\n' + str(output) + '\n\n#-#\n\n')
+
+
 '''
 FLASK APPLICATION CODE & ROUTES
 '''
@@ -545,4 +555,5 @@ def process():
     elif cmd_match == False:
         outputs = ['string', command, '', 'No matching command found']
 
+    log_commands(outputs)
     return jsonify(outputs=outputs)
