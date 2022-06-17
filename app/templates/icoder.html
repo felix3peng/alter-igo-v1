@@ -21,14 +21,14 @@
     <!--Script for submitting command to python and generating new content-->
     <script type=text/javascript>
         $(document).ready(function(){
-            var i=0;
+            var i=1;
             var nt=0;
             var np=0;
             $('#submit').click(function(){
                 $.getJSON($SCRIPT_ROOT + '/process', {
                     command: $('#cmd').val(),
                 }, function(data){
-                    $('.content').append('<div><span class="numlabel">['+i+']: </span><span><b>'+data.outputs[1]+'</b></span></div>');
+                    $('.content').append('<div class="commandwrapper"><div class="numlabel">['+i+']: </div><div class="command_disp"><b>'+data.outputs[1]+'</b></div><div class="feedback-btns"><button class="thumbsup" id="thumbsup'+data.outputs[4]+'" type="button" onclick="positive('+data.outputs[4]+')" title="This worked well"><i class="bx bx-like"></i></button><button class="thumbsdown" id="thumbsdown'+data.outputs[4]+'" type="button" onclick="negative('+data.outputs[4]+')" title="This did not work well"><i class="bx bx-dislike"></i></button></div></div></div>');
                     if (document.getElementById('checkbox').checked) {
                         $('.content').append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton' data-target='#code"+i+"'></button><div class='collapse in' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
                     } else if (data.outputs[3] == "") {
@@ -55,8 +55,8 @@
                     hljs.highlightAll();
                     document.getElementById("cmd").value = "";
                     $('html,body').animate({scrollTop: document.body.scrollHeight},"fast");
-                });
-            i++;
+                i++;
+            });
             });
         });
     </script>
@@ -81,11 +81,11 @@
             }
         });
     </script>
-    <!--Script to trigger submit on Enter-->
+    <!--Script to trigger submit on Ctrl+Enter, normal linebreak if just Enter-->
     <script type=text/javascript>
         $(document).ready(function(){
             $('#cmd').keydown(function(e){
-                if (e.keyCode == 13) {
+                if(e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
                     e.preventDefault();
                     $('#submit').click();
                     document.getElementById("cmd").value = "";
@@ -119,7 +119,7 @@
             });
         });
     </script>
-    <!--Download table as csv on button click-->
+    <!--Script to download table as csv on button click-->
     <script type=text/javascript>
         function download_table_as_csv(table_id) {
             var rows = document.querySelectorAll('#'+table_id.id+' tr');
@@ -147,6 +147,40 @@
             document.body.removeChild(link);
         }
     </script>
+    <!--Script to send button id to positive_feedback for onclick-->
+    <script type=text/javascript>
+        function positive(button_id) {
+            $.getJSON($SCRIPT_ROOT + '/positive_feedback', {
+                    db_id: button_id,
+                }, function(data) {
+                    var elem_up = document.getElementById('thumbsup'+button_id)
+                    var elem_dn = document.getElementById('thumbsdown'+button_id)
+                    if (elem_up.style.color == 'green') {
+                        elem_up.style.color = 'gray';
+                    } else {
+                        elem_up.style.color = 'green';
+                        elem_dn.style.color = 'gray';
+                    }
+                });
+        }
+    </script>
+    <!--Script to send button id to negative_feedback for onclick-->
+    <script type=text/javascript>
+        function negative(button_id) {
+            $.getJSON($SCRIPT_ROOT + '/negative_feedback', {
+                    db_id: button_id,
+                }, function(data) {
+                    var elem_up = document.getElementById('thumbsup'+button_id)
+                    var elem_dn = document.getElementById('thumbsdown'+button_id)
+                    if (elem_dn.style.color == 'red') {
+                        elem_dn.style.color = 'gray';
+                    } else {
+                        elem_dn.style.color = 'red';
+                        elem_up.style.color = 'gray';
+                    }
+                });
+        }
+    </script>
     <!--HTML for body of page-->
     <!--Sidebar that collapses to the left edge-->
     <div class="entry" id="entry">
@@ -162,10 +196,10 @@
         </div>
         <div class="entry-main-content" id="entry-main-content">
             <div class="textarea-and-btns">
-                <input type="text" id="cmd" name="cmd" autocomplete="off">
+                <textarea id="cmd" name="cmd" autocomplete="off"></textarea>
                 <br>
                 <div class="btn-toolbar">
-                    <button class="btn btn-primary" id="submit" type="button" title="Submit query">
+                    <button class="btn btn-primary" id="submit" type="button" title="Submit query (Ctrl+Enter)">
                         <i class="bx bx-right-arrow-alt" id="submit-icon"></i>
                     </button>
                     <button class="btn" id="clear" type="button" title="Clear display">
@@ -174,18 +208,16 @@
                 </div>
             </div>
             <br>
-            <label for="#checkbox" class="checklabelcont">
-                <input type="checkbox" id="checkbox" name="checkbox">
-                <span class="checkbox-label">Show code</span>
-            </label>
-            <p id="showcode-disclaimer"><i>Code will automatically be shown if there is no output</i></p>
+            <div>
+                <label for="#checkbox" class="checklabelcont">
+                    <input type="checkbox" id="checkbox" name="checkbox">
+                    <span class="checkbox-label">Show code</span>
+                </label>
+            </div>
         </div>
     </div>
 <!--Main content-->
     <div class="display" id="display">
-        <div class="header" id="header">
-            <h3>Code & Output Display</h3>
-        </div>
         <div class="content" id="content"></div>
     </div>
 </body>

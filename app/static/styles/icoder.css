@@ -10,14 +10,13 @@ html, body {
     overflow-x: hidden;
 }
 
-.entry,
 .display {
     overflow: auto;
     overflow-x: hidden;
     backface-visibility: hidden;
     margin-top: 0px;
     padding-left: 20px;
-    padding-top: 100px;
+    padding-top: 20px;
     will-change: overflow;
     padding: .5rem;
     padding-left: 20px;
@@ -26,15 +25,21 @@ html, body {
 }
 
 .entry {
+    overflow: auto;
+    overflow-x: hidden;
+    backface-visibility: hidden;
+    margin-top: 0px;
+    will-change: overflow;
+    padding-left: 20px;
+    padding-bottom: 10px;
+    padding-top: 10px;
+    -webkit-overflow-scrolling: touch;
+    -ms-overflow-style: none;
     height: 100%;
     width: 33vw;
     position: fixed;
     z-index: 1;
     top: 0;
-    overflow-x: hidden;
-    /*transition: width 0.2s;*/
-    padding-bottom: 10px;
-    padding-top: 10px;
     box-shadow: 0.5px 0px 0.5px gray;
 }
 
@@ -71,11 +76,23 @@ html, body {
 
 #arrowIcon,
 #submit-icon,
-#refresh-icon {
+#refresh-icon,
+.bx-like,
+.bx-dislike {
     vertical-align: middle;
     font-size: 2rem;
     text-align: center;
     padding: 0px;
+}
+
+.thumbsup,
+.thumbsdown {
+    border: none;
+    color: gray;
+    background-color: transparent;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.5rem;
 }
 
 .display {
@@ -94,11 +111,10 @@ html, body {
 }
 
 .btn-toolbar {
-    z-index: 100;
-    position: absolute;
-    bottom: 4px;
-    right: 6%;
+    float: right;
+    margin-right: 4%;
     display: flex;
+    margin-left: 5px;
 }
 
 #submit {
@@ -158,10 +174,29 @@ h2 {
     content: 'Click to hide code';
 }
 
+.commandwrapper {
+    position: relative;
+    vertical-align: middle;
+}
+
 .numlabel {
     display: inline-block;
+    vertical-align: middle;
     width: 3rem;
-    height: 1rem;
+}
+
+.command_disp {
+    display: inline-block;
+    vertical-align: middle;
+    white-space: pre-wrap;
+    margin-left: 0.5rem;
+}
+
+.feedback-btns {
+    float: right;
+    vertical-align: middle;
+    margin-right: 10px;
+    z-index: 100;
 }
 
 .output {
@@ -180,18 +215,8 @@ h2 {
     margin-left: 3rem;
 }
 
-.header {
-    position: fixed;
-    top: 0;
-    height: 100px;
-    width: 100%;
-    background-color: white;
-    opacity: 1;
-    padding-top: 10px;
-}
-
 .content {
-    margin-top: 100px;
+    margin-top: 20px;
 }
 
 #showcode-disclaimer {

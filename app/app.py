@@ -10,6 +10,9 @@ pd.set_option('display.max_columns', 500)
 pd.set_option('display.expand_frame_repr', False)
 from flask import Flask, Blueprint, flash, g, redirect, render_template
 from flask import request, session, url_for, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.sql import text
+import sqlite3
 import openai
 import inspect
 from itertools import groupby
@@ -33,7 +36,6 @@ import shap
 
 
 # global declarations
-global s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16
 global cc_dict, numtables, numplots
 
 '''
@@ -448,12 +450,16 @@ def runcode(text, args=None):
         return [outputtype, output]
 
 
-# log results in log.csv
+# log results to db
 def log_commands(outputs):
     # unpack outputs into variables
-    otype, cmd, code, output = outputs
-    with open('log.csv', 'a') as log_file:
-        log_file.write(str(datetime.now()) + '\n\n' + str(cmd) + '\n\n' + str(otype) + '\n\n' + str(code) + '\n\n' + str(output) + '\n\n#-#\n\n')
+    _, cmd, code, _ = outputs
+    feedback = 'none'
+    dt = str(datetime.now())
+    record = Log(dt, cmd, code, feedback)
+    db.session.add(record)
+    db.session.commit()
+    return record.id
 
 
 '''
@@ -466,10 +472,35 @@ app.config.update(
     SECRET_KEY='its-a-secret'
 )
 
+# set up database connection for log
+db_name = 'log.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_name
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+db = SQLAlchemy(app)
+
+# create a class for the table in db
+class Log(db.Model):
+    __tablename__ = 'log'
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.String(100))
+    command = db.Column(db.String(1000))
+    codeblock = db.Column(db.String(1000))
+    feedback = db.Column(db.String(1000))
+
+    def __init__(self, timestamp, command, codeblock, feedback):
+        self.timestamp = timestamp
+        self.command = command
+        self.codeblock = codeblock
+        self.feedback = feedback
 
 # base route to display main html body
 @app.route('/', methods=["GET", "POST"])
 def home():
+    try:
+        db.session.test_connection()
+        pass
+    except:
+        flash('database connection failed')
     return render_template('icoder.html')
 
 
@@ -524,6 +555,7 @@ def process():
         cmd_embed = get_embedding(lcommand)
         sims = [cosine_similarity(cmd_embed, x) for x in embedding_cache]
         ind = np.argmax(sims)
+        # for debugging; print out command matching schema
         print('\n\nEntered: ', command)
         print('Best match similarity: ', np.max(sims))
         print('Best match command: ', list(cc_dict.keys())[ind])
@@ -554,6 +586,43 @@ def process():
         outputs = [outputtype, command, codeblock, output]
     elif cmd_match == False:
         outputs = ['string', command, '', 'No matching command found']
+    
+    # commit results to db and get id of corresponding entry
+    newest_id = log_commands(outputs)
+    # append id to outputs
+    outputs.append(newest_id)
 
-    log_commands(outputs)
     return jsonify(outputs=outputs)
+
+# create a function to process positive feedback
+@app.route('/positive_feedback')
+def positive_feedback():
+    id = request.args.get('db_id')
+    record = Log.query.filter_by(id=id).first()
+    # update feedback; none if already positive, positive otherwise
+    if record.feedback == 'positive':
+        record.feedback = 'none'
+        print('Canceled positive feedback on entry', id)
+    else:
+        record.feedback = 'positive'
+        print('Positive feedback on entry', id)
+    db.session.commit()
+    return jsonify(id=id)
+
+# create a function to process negative feedback
+@app.route('/negative_feedback')
+def negative_feedback():
+    id = request.args.get('db_id')
+    record = Log.query.filter_by(id=id).first()
+    # update feedback; none if already negative, negative otherwise
+    if record.feedback == 'negative':
+        record.feedback = 'none'
+        print('Canceled negative feedback on entry', id)
+    else:
+        record.feedback = 'negative'
+        print('Negative feedback on entry', id)
+    db.session.commit()
+    return jsonify(id=id)
+
+if __name__ == '__main__':
+    app.run(debug=True)
