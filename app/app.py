@@ -34,7 +34,6 @@ from openai.embeddings_utils import get_embedding, cosine_similarity
 import pickle
 import shap
 
-
 # global declarations
 global cc_dict, numtables, numplots
 
@@ -478,7 +477,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_name
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
-# create a class for the table in db
+# create a class for the log table in db
 class Log(db.Model):
     __tablename__ = 'log'
     id = db.Column(db.Integer, primary_key=True)
@@ -492,6 +491,19 @@ class Log(db.Model):
         self.command = command
         self.codeblock = codeblock
         self.feedback = feedback
+
+# create a class for the code_edits table in db
+class Code_Edits(db.Model):
+    __tablename__ = 'code_edits'
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.String(100))
+    orig_code = db.Column(db.String(1000))
+    edited_code = db.Column(db.String(1000))
+
+    def __init__(self, timestamp, orig_code, edited_code):
+        self.timestamp = timestamp
+        self.orig_code = orig_code
+        self.edited_code = edited_code
 
 # base route to display main html body
 @app.route('/', methods=["GET", "POST"])
@@ -529,6 +541,16 @@ def process():
     # remove RMSE if it is present
     try:
         feat_params.remove('RMSE')
+    except ValueError:
+        pass
+    # remove LOG if it is present
+    try:
+        feat_params.remove('LOG')
+    except ValueError:
+        pass
+    # remove SUM if it is present
+    try:
+        feat_params.remove('SUM')
     except ValueError:
         pass
     if len(feat_params) > 0:
@@ -586,6 +608,17 @@ def process():
         outputs = [outputtype, command, codeblock, output]
     elif cmd_match == False:
         outputs = ['string', command, '', 'No matching command found']
+        # call openai api using code-davinci-002 to generate code from the command
+        response = openai.Completion.create(
+            model="code-davinci-002",
+            prompt="",
+            temperature=0.13,
+            max_tokens=300,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0,
+            stop=["#"]
+            )
     
     # commit results to db and get id of corresponding entry
     newest_id = log_commands(outputs)
@@ -593,6 +626,7 @@ def process():
     outputs.append(newest_id)
 
     return jsonify(outputs=outputs)
+
 
 # create a function to process positive feedback
 @app.route('/positive_feedback')
@@ -609,6 +643,7 @@ def positive_feedback():
     db.session.commit()
     return jsonify(id=id)
 
+
 # create a function to process negative feedback
 @app.route('/negative_feedback')
 def negative_feedback():
@@ -623,6 +658,7 @@ def negative_feedback():
         print('Negative feedback on entry', id)
     db.session.commit()
     return jsonify(id=id)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
