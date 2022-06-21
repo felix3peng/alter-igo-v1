@@ -33,310 +33,18 @@ from openai.embeddings_utils import get_embeddings, distances_from_embeddings
 from openai.embeddings_utils import get_embedding, cosine_similarity
 import pickle
 import shap
-
+import socket
+from resources import cc_dict, cm_dict
 
 # global declarations
-global cc_dict, numtables, numplots
+global numtables, numplots
+global codex_context
+
+codex_context = ''
 
 '''
 COMMAND-CODE DICTIONARY
 '''
-# load data, no args
-s1 = '''import pandas as pd
-from sklearn.datasets import load_boston
-boston = load_boston()
-df_X = pd.DataFrame(boston.data)
-df_X.columns = boston.feature_names
-df_y = pd.DataFrame(boston.target)
-df_y.columns = ['MEDV']
-df = pd.concat([df_X, df_y], axis=1)
-print(df.head())'''
-# summarize data, no args
-s2 = '''print(df.describe())'''
-# print feature names, no args
-s3 = '''print(list(df.columns))'''
-# set feature as target, 1 feature args
-s4 = '''X = df.copy()
-target_name = '{0}'
-y = X.pop('{0}')
-y.columns = [target_name]'''
-# calculate corr between 2 features, 2 features args
-s5 = '''corr = df['{0}'].corr(df['{1}'])
-print('Correlation between {0} and {1}: ', corr)'''
-# plot correlation heatmap, no args
-s6 = '''import seaborn as sns
-import numpy as np
-mask = np.triu(np.ones_like(df.corr()))
-sns.heatmap(df.corr(), xticklabels=df.columns, yticklabels=df.columns, mask=mask)'''
-# plot histogram of feature, 1 feature args
-s7 = '''df.hist(column='{0}')'''
-# plot scatterplot of 2 features, 2 feature args
-s8 = '''df.plot.scatter(x='{0}', y='{1}')'''
-# print target name
-s9 = '''print(list(y.columns))'''
-# train test split data, 2 numbers args
-s10 = '''from sklearn.model_selection import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(X, y, train_size={0})'''
-# train xgboost model, no args
-s11 = '''from xgboost import XGBRegressor
-model = XGBRegressor()
-model.fit(X_train, y_train)
-print('XGBRegressor parameters:')
-print(model.get_xgb_params())'''
-# train random forest model default, no args
-s12 = '''from sklearn.ensemble import RandomForestRegressor
-model = RandomForestRegressor()
-model.fit(X_train, y_train)
-print('Random Forest Regressor parameters:')
-print(model.get_params())'''
-# train logistic regression model, no args
-s13 = '''from sklearn.linear_model import LogisticRegression
-model = LogisticRegression()
-model.fit(X_train, y_train)
-print('Logistic Regression parameters:')
-print(model.get_params())'''
-# get train and test r2 score, no args
-s14 = '''from sklearn.metrics import r2_score
-y_pred_train = model.predict(X_train)
-model_r2_train = r2_score(y_train, y_pred_train)
-y_pred_test = model.predict(X_test)
-model_r2_test = r2_score(y_test, y_pred_test)
-print("Train R2: ", model_r2_train)
-print("Test R2: ", model_r2_test)'''
-# get train and test MAE score, no args
-s15 = '''from sklearn.metrics import mean_absolute_error
-y_pred_train = model.predict(X_train)
-model_mae_train = mean_absolute_error(y_train, y_pred_train)
-y_pred_test = model.predict(X_test)
-model_mae_test = mean_absolute_error(y_test, y_pred_test)
-print("Train MAE: ", model_mae_train)
-print("Test MAE: ", model_mae_test)'''
-# get feature importance, no args
-s16 = '''import matplotlib.pyplot as plt
-import numpy as np
-importances = model.feature_importances_
-indices = np.argsort(importances)
-plt.barh(range(X_train.shape[1]), importances[indices])
-_ = plt.title('Feature Importances')
-_ = plt.yticks(ticks=range(X_train.shape[1]), labels=X_train.columns[indices])'''
-# plot shap feature importance, no args
-s17 = '''import shap
-explainer = shap.TreeExplainer(model)
-shap_values = explainer.shap_values(X_train)
-shap.summary_plot(shap_values, X_train)'''
-# get shap feature interaction between 2 features, 2 feature args
-s18 = '''import shap
-explainer = shap.TreeExplainer(model)
-interx_vals = explainer.shap_interaction_values(X_train)
-shap.dependence_plot(('{0}', '{1}'), interx_vals, X_train, display_features=X_train)'''
-# print r2, MAE, RMSE score for train and test, no args
-s19 = '''from sklearn.metrics import r2_score
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import mean_squared_error
-y_pred_train = model.predict(X_train)
-y_pred_test = model.predict(X_test)
-model_r2_train = r2_score(y_train, y_pred_train)
-model_r2_test = r2_score(y_test, y_pred_test)
-model_mae_train = mean_absolute_error(y_train, y_pred_train)
-model_mae_test = mean_absolute_error(y_test, y_pred_test)
-model_rmse_train = mean_squared_error(y_train, y_pred_train, squared=False)
-model_rmse_test = mean_squared_error(y_test, y_pred_test, squared=False)
-print("Train R2: ", model_r2_train)
-print("Test R2: ", model_r2_test)
-print("Train MAE: ", model_mae_train)
-print("Test MAE: ", model_mae_test)
-print("Train RMSE: ", model_rmse_train)
-print("Test RMSE: ", model_rmse_test)'''
-# train random forest model with given number of trees, 1 number arg
-s20 = '''from sklearn.ensemble import RandomForestRegressor
-model = RandomForestRegressor(n_estimators={0})
-model.fit(X_train, y_train)
-print('Random Forest Regressor parameters:')
-print(model.get_params())'''
-# calculate train r2 score, no args
-s21 = '''from sklearn.metrics import r2_score
-y_pred = model.predict(X_train)
-model_r2 = r2_score(y_train, y_pred)
-print("Train R2: ", model_r2)'''
-# calculate test r2 score, no args
-s22 = '''from sklearn.metrics import r2_score
-y_pred = model.predict(X_test)
-model_r2 = r2_score(y_test, y_pred)
-print("Test R2: ", model_r2)'''
-# calculate train MAE score, no args
-s23 = '''from sklearn.metrics import mean_absolute_error
-y_pred = model.predict(X_train)
-model_mae = mean_absolute_error(y_train, y_pred)
-print("Train MAE: ", model_mae)'''
-# calculate test MAE score, no args
-s24 = '''from sklearn.metrics import mean_absolute_error
-y_pred = model.predict(X_test)
-model_mae = mean_absolute_error(y_test, y_pred)
-print("Test MAE: ", model_mae)'''
-# calculate train and test RMSE, no args
-s25 = '''from sklearn.metrics import mean_squared_error
-y_pred_train = model.predict(X_train)
-y_pred_test = model.predict(X_test)
-model_rmse_train = mean_squared_error(y_train, y_pred_train, squared=False)
-model_rmse_test = mean_squared_error(y_test, y_pred_test, squared=False)
-print("Train RMSE: ", model_rmse_train)
-print("Test RMSE: ", model_rmse_test)'''
-# calculate train RMSE, no args
-s26 = '''from sklearn.metrics import mean_squared_error
-y_pred = model.predict(X_train)
-model_rmse = mean_squared_error(y_train, y_pred, squared=False)
-print("Train RMSE: ", model_rmse)'''
-# calculate test RMSE, no args
-s27 = '''from sklearn.metrics import mean_squared_error
-y_pred = model.predict(X_test)
-model_rmse = mean_squared_error(y_test, y_pred, squared=False)
-print("Test RMSE: ", model_rmse)'''
-# get shape of data, no args
-s28 = '''print(df.shape)'''
-# get number of rows, no args
-s29 = '''print(len(df))'''
-# get number of columns, no args
-s30 = '''print(df.shape[1])'''
-# remove a feature, 1 feature args
-s31 = '''X.drop(columns=['{0}'], inplace=True)'''
-# remove features, 2 feature args
-s32 = '''X.drop(columns=['{0}', '{1}'], inplace=True)'''
-# add a log of a feature, 1 feature args
-s33 = '''import numpy as np
-X['{1}'] = np.log(X['{0}'])'''
-# show X
-s34 = '''print(X.head())'''
-# show X_train
-s35 = '''print(X_train.head())'''
-# show X_test
-s36 = '''print(X_test.head())'''
-# show y
-s37 = '''print(y.head())'''
-# show y_train
-s38 = '''print(y_train.head())'''
-# show y_test
-s39 = '''print(y_test.head())'''
-# add a log feature of every feature
-s40 = '''import numpy as np
-Xlog = X.apply(np.log)
-Xlog.columns = ['LOG_' + x for x in X.columns]
-X = pd.concat([X, Xlog], axis=1)'''
-# add a multiplicative interaction column of two features
-s41 = '''X['{2}'] = X['{0}'] * X['{1}']'''
-# show columns of X
-s42 = '''print(list(X.columns))'''
-
-cc_dict = {'load data': s1,
-           'summarize data': s2,
-           'describe data': s2,
-           'get feature names': s3,
-           'what are the features': s3,
-           'what are the columns': s3,
-           'get column names': s3,
-           'set feature as target': s4,
-           'get correlation between f1 and f2': s5,
-           'correlation of f1 and f2': s5,
-           'what is the correlation between f1 and f2': s5,
-           'what is the correlation of f1 and f2': s5,
-           'calculate correlation between f1 and f2': s5,
-           'calculate correlation of f1 and f2': s5,
-           'show correlation heatmap': s6,
-           'heatmap of correlations': s6,
-           'plot histogram of feature': s7,
-           'show density of feature': s7,
-           'show distribution of feature': s7,
-           'show scatter plot of f1 and f2': s8,
-           'distribution of f1 and f2': s8,
-           'get target name': s9,
-           'what is the target': s9,
-           'train test split of given ratio': s10,
-           'do a ratio ratio train test split': s10,
-           'train an xgboost model': s11,
-           'xgboost model': s11,
-           'train a random forest model': s12,
-           'train a rf model': s12,
-           'random forest': s12,
-           'train a logistic regression model': s13,
-           'train a log model': s13,
-           'calculate r2 score': s14,
-           'calculate r2 on train and test': s14,
-           'show model r2': s14,
-           'what is the r2 score': s14,
-           'calculate mae score': s15,
-           'what is the mae score': s15,
-           'calculate mae on train and test': s15,
-           'show model mae': s15,
-           'show the feature importance': s16,
-           'what is the feature importance': s16,
-           'show shap feature importances': s17,
-           'what is the shap feature importance': s17,
-           'show shap interaction between f1 and f2': s18,
-           'shap interaction plot between f1 and f2': s18,
-           'what is the shap interaction of f1 and f2': s18,
-           'calculate model performance': s19,
-           'caclulate performance of model on train and test': s19,
-           'what is the performance of rf': s19,
-           'what is the performance of log reg': s19,
-           'what is the performance of xgboost': s19,
-           'how good is the model': s19,
-           'what is the model accuracy': s19,
-           'train a random forest model with x trees': s20,
-           'random forest with x trees': s20,
-           'calculate r2 score on train': s21,
-           'r2 train': s21,
-           'calculate r2 score on test': s22,
-           'r2 test': s22,
-           'calculate mae score on train': s23,
-           'mae train': s23,
-           'calculate mae score on test': s24,
-           'mae test': s24,
-           'calculate rmse score': s25,
-           'what is the rmse': s25,
-           'get rmse score': s25,
-           'show model rmse': s25,
-           'calculate rmse on train and test': s25,
-           'calculate rmse score on train': s26,
-           'rmse train': s26,
-           'what is rmse on train': s26,
-           'calculate rmse score on test': s27,
-           'rmse test': s27,
-           'what is rmse on test': s27,
-           'get shape of data': s28,
-           'what is the shape of the data': s28,
-           'how many rows are there': s29,
-           'number of rows': s29,
-           'how many records are there': s29,
-           'number of records': s29,
-           'how many columns are there': s30,
-           'how many features are there': s30,
-           'number of columns': s30,
-           'number of features': s30,
-           'drop feature': s31,
-           'delete feature': s31,
-           'remove feature': s31,
-           'drop feature and feature': s32,
-           'remove feature and feature': s32,
-           'delete feature and feature': s32,
-           'create new feature, log of feat and name it new_feat': s33,
-           'take log of feat and call it new_feat': s33,
-           'print x': s34,
-           'show me x': s34,
-           'show x': s34,
-           'show x_train': s35,
-           'show x_test': s36,
-           'show me y': s37,
-           'show y': s37,
-           'print y': s37,
-           'show y_train': s38,
-           'show y_test': s39,
-           'create new features, log of every feature': s40,
-           'take the log of every feature': s40,
-           'create new feature, product of feat and feat and call it new_feat': s41,
-           'take product of feat and feat and call it new_feat': s41,
-           'multiple feat and feat and call it new_feat': s41,
-           'what are the columns of x': s42,
-           'column names of x': s42,
-           'features of x': s42}
 
 '''
 EMBEDDINGS
@@ -345,10 +53,10 @@ cache_path = 'embeddings_cache.pkl'
 try:
     embedding_cache = pd.read_pickle(cache_path)
     print('cache file located, reading...')
-    if len(embedding_cache) != len(cc_dict):
+    if len(embedding_cache) != len(cm_dict):
         print('outdated cache file, re-calculating embeddings...')
         # if cache doesn't have the right number of embeddings, re-run
-        embedding_cache = get_embeddings(list(cc_dict.keys()),
+        embedding_cache = get_embeddings(list(cm_dict.keys()),
                                          engine="text-similarity-davinci-001")
         with open(cache_path, "wb") as embedding_cache_file:
             pickle.dump(embedding_cache, embedding_cache_file)
@@ -357,7 +65,7 @@ try:
         print('successfully loaded cached embeddings')
 except FileNotFoundError:
     print('cache file not found, creating new cache')
-    embedding_cache = get_embeddings(list(cc_dict.keys()),
+    embedding_cache = get_embeddings(list(cm_dict.keys()),
                                      engine="text-similarity-davinci-001")
     with open(cache_path, "wb") as embedding_cache_file:
         pickle.dump(embedding_cache, embedding_cache_file)
@@ -367,6 +75,10 @@ except FileNotFoundError:
 '''
 HELPER FUNCTIONS
 '''
+# get computer name
+global user_id
+user_id = socket.gethostname()
+
 # store normal stdout in variable for reference
 old_stdout = sys.stdout
 
@@ -483,12 +195,14 @@ class Log(db.Model):
     __tablename__ = 'log'
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.String(100))
+    user = db.Column(db.String(100))
     command = db.Column(db.String(1000))
     codeblock = db.Column(db.String(1000))
     feedback = db.Column(db.String(1000))
 
     def __init__(self, timestamp, command, codeblock, feedback):
         self.timestamp = timestamp
+        self.user = user_id
         self.command = command
         self.codeblock = codeblock
         self.feedback = feedback
@@ -516,28 +230,22 @@ def process():
     feat_params = [a.replace(',', '') for a in feat_params]
     feat_params = [a.replace('"', '') for a in feat_params]
     feat_params = [a.replace("'", '') for a in feat_params]
-    # remove X if it is in the param list
-    try:
-        feat_params.remove('X')
-    except ValueError:
-        pass
-    # remove MAE if it is present
-    try:
-        feat_params.remove('MAE')
-    except ValueError:
-        pass
-    # remove RMSE if it is present
-    try:
-        feat_params.remove('RMSE')
-    except ValueError:
-        pass
+
+    # set up list of all caps names that should be ignored
+    restricted_allcaps = ['X', 'Y', 'TARGET', 'TRAIN', 'TEST', 'LOG', 'HCP', 'DEA', 'MAE', 'RMSE', 'TRx', 'NBRx']
+    # check if any elements of restricted_allcaps are in feat_params and remove them
+    for feat in feat_params:
+        if feat in restricted_allcaps:
+            feat_params.remove(feat)
+    
+    # if there are any feature names, then add them to extra_args
     if len(feat_params) > 0:
         extra_args.extend(feat_params)
 
     # turn to lowercase for uniformity
     lcommand = command.lower()
 
-    # parse command for any numbers
+    # parse command for any numbers, ignoring numbers adjacent to letters (e.g. R2)
     num_params = re.findall(r'[\s-]*(\d+)[\s-]*', lcommand)
     # parse train-test ratio
     if len(num_params) > 1:
@@ -545,31 +253,33 @@ def process():
         nums = [n/100 for n in nums if n > 1.0]
         nums = [str(round(n, 2)) for n in nums]
         extra_args.extend(nums)
-    # parse if given number of trees or other single number args
+    # parse single-number parameters (e.g. number of trees)
     elif len(num_params) == 1:
         extra_args.extend(num_params)
 
     # check if command is in the dictionary keys; if not, match via embedding
     cmd_match = True
-    if lcommand not in list(cc_dict.keys()):
+    if lcommand not in list(cm_dict.keys()):
         cmd_embed = get_embedding(lcommand)
         sims = [cosine_similarity(cmd_embed, x) for x in embedding_cache]
         ind = np.argmax(sims)
         # for debugging; print out command matching schema
         print('\n\nEntered: ', command)
         print('Best match similarity: ', np.max(sims))
-        print('Best match command: ', list(cc_dict.keys())[ind])
+        print('Best match command: ', list(cm_dict.keys())[ind])
         # set cmd_match flag to False if best similarity is 0.80 or less
         if np.max(sims) <= 0.80:
             cmd_match = False
-            print('Best match rejected\n')
+            print('Best match rejected, calling Codex API...\n')
         else:
-            cmd = list(cc_dict.keys())[ind]
-            code = list(cc_dict.values())[ind]
+            cmd = list(cm_dict.keys())[ind]
+            base_cmd = cm_dict[cmd]
+            code = cc_dict[base_cmd]
             print('Best match accepted\n')
     else:
         cmd = command.lower()
-        code = cc_dict[cmd]
+        base_cmd = cm_dict[cmd]
+        code = cc_dict[base_cmd]
 
     # supplement cmd with parameters (if applicable) and pass to runcode
     if cmd_match == True:
@@ -585,6 +295,8 @@ def process():
             [outputtype, output] = runcode(cmd)
         outputs = [outputtype, command, codeblock, output]
     elif cmd_match == False:
+        # call OpenAI codex API to get codeblock
+        
         outputs = ['string', command, '', 'No matching command found']
     
     # commit results to db and get id of corresponding entry
