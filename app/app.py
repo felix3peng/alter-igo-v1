@@ -298,17 +298,6 @@ def process():
     if cmd_match == True:
         argtuple = tuple(extra_args)
         if len(argtuple) == 1:
-        # call openai api using code-davinci-002 to generate code from the command
-        response = openai.Completion.create(
-            model="code-davinci-002",
-            prompt="",
-            temperature=0.13,
-            max_tokens=300,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
-            stop=["#"]
-            )
             codeblock = code.format(argtuple[0])
         else:
             codeblock = code.format(*argtuple)
