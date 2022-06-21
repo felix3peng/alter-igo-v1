@@ -2,3 +2,4 @@ venv/
 .spyproject/
 __pycache__/
 instance/
+.venv/
