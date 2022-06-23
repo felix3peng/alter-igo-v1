@@ -3,3 +3,5 @@ venv/
 __pycache__/
 instance/
 .venv/
+.vscode/
+TIF_FIX_v0.1.txt
