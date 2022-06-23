@@ -3,6 +3,13 @@ global cc_dict, cm_dict
 '''
 CODE PAIRINGS
 '''
+# load boston data
+s0 = '''import pandas as pd
+from sklearn.datasets import load_boston
+boston = load_boston()
+df = pd.DataFrame(boston.data, columns=boston.feature_names)
+df['MEDV'] = boston.target
+print(df.head())'''
 # load data, no args
 s1 = '''import pandas as pd
 import os
@@ -331,7 +338,8 @@ print(call_activity)'''
 '''
 COMMAND-CODE DICTIONARY (BASE COMMANDS)
 '''
-cc_dict = {'load data': s1,
+cc_dict = {'load boston data': s0,
+           'load HCP data': s1,
            'summarize data': s2,
            'get feature names': s3,
            'set feature as target': s4,
@@ -409,10 +417,13 @@ cc_dict = {'load data': s1,
 '''
 COMMAND-COMMAND DICTIONARY
 '''
-cm_dict = {'load the data': 'load data',
-           'load HCP dataset': 'load data',
-           'load data from file': 'load data',
-           'load data from file named x': 'load data',
+cm_dict = {'load boston data': 'load boston data',
+           'load housing data': 'load boston data',
+           'load boston housing dataset': 'load boston data',
+           'load data': 'load HCP data',
+           'load HCP dataset': 'load HCP data',
+           'load data from file': 'load HCP data',
+           'load data from file named x': 'load HCP data',
            'show summary of the data': 'summarize data',
            'summarize the data': 'summarize data',
            'describe the data': 'summarize data',
