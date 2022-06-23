@@ -181,6 +181,14 @@
                 });
         }
     </script>
+    <!--Script for activating loading icon on ajax start-->
+    <script type=text/javascript>
+        $body = $("body");
+        $(document).on({
+            ajaxStart: function() { $body.addClass("loading");    },
+            ajaxStop: function() { $body.removeClass("loading"); }    
+        });
+    </script>
     <!--HTML for body of page-->
     <!--Sidebar that collapses to the left edge-->
     <div class="entry" id="entry">
@@ -220,4 +228,5 @@
     <div class="display" id="display">
         <div class="content" id="content"></div>
     </div>
+    <div class="modal"></div>
 </body>

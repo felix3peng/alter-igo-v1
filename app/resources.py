@@ -166,12 +166,12 @@ s29 = '''print(len(df))'''
 # get number of columns, no args
 s30 = '''print(df.shape[1])'''
 # remove a feature, 1 feature args
-s31 = '''X.drop(columns=['{0}'], inplace=True)'''
+s31 = '''df.drop(columns=['{0}'], inplace=True)'''
 # remove features, 2 feature args
-s32 = '''X.drop(columns=['{0}', '{1}'], inplace=True)'''
+s32 = '''df.drop(columns=['{0}', '{1}'], inplace=True)'''
 # add a log of a feature, 1 feature args
 s33 = '''import numpy as np
-X['{1}'] = np.log(X['{0}'])'''
+df['{1}'] = np.log(df['{0}'])'''
 # show X
 s34 = '''print(X.head())'''
 # show X_train
@@ -186,29 +186,33 @@ s38 = '''print(y_train.head())'''
 s39 = '''print(y_test.head())'''
 # add a log feature of every feature
 s40 = '''import numpy as np
-Xlog = X.apply(np.log)
-Xlog.columns = ['LOG_' + x for x in X.columns]
-X = pd.concat([X, Xlog], axis=1)'''
+dflog = df.apply(np.log)
+dflog.columns = ['LOG_' + x for x in df.columns]
+df = pd.concat([df, dflog], axis=1)'''
 # add a multiplicative interaction column of two features
-s41 = '''X['{2}'] = X['{0}'] * X['{1}']'''
+s41 = '''df['{2}'] = df['{0}'] * df['{1}']'''
 # show columns of X
 s42 = '''print(list(X.columns))'''
 # create decile of LOLO NBRX
-s43 = '''sums = df['LOLO_NBRX_52WK'].replace(0, np.nan).sort_values(ascending=True).cumsum()
+s43 = '''import numpy as np
+sums = df['LOLO_NBRX_52WK'].replace(0, np.nan).sort_values(ascending=True).cumsum()
 sums_dec = np.floor(sums/(df['LOLO_NBRX_52WK'].sum()/10))
 sums_dec[sums_dec == 10] = 9
 sums_dec += 1
 sums_dec.replace(np.nan, 0, inplace=True)
 df['LOLO_NBRX_52WK_DECILE'] = sums_dec.sort_index(ascending=True)
-print(df['LOLO_NBRX_52WK_DECILE'].value_counts().sort_index())'''
+for i in range(0, 11):
+    print('Decile', i, ':', df['LOLO_NBRX_52WK_DECILE'].value_counts()[i])'''
 # create decile of ORIAHNN NBRX
-s44 = '''sums = df['ORIAHNN_NBRX_LTD'].replace(0, np.nan).sort_values(ascending=True).cumsum()
+s44 = '''import numpy as np
+sums = df['ORIAHNN_NBRX_LTD'].replace(0, np.nan).sort_values(ascending=True).cumsum()
 sums_dec = np.floor(sums/(df['ORIAHNN_NBRX_LTD'].sum()/10))
 sums_dec[sums_dec == 10] = 9
 sums_dec += 1
 sums_dec.replace(np.nan, 0, inplace=True)
 df['ORIAHNN_NBRX_LTD_DECILE'] = sums_dec.sort_index(ascending=True)
-print(df['ORIAHNN_NBRX_LTD_DECILE'].value_counts().sort_index())'''
+for i in range(0, 11):
+    print('Decile', i, ':', df['LOLO_NBRX_52WK_DECILE'].value_counts()[i])'''
 # generate a count for each product
 s45 = '''product_types = ['LOLO', 'ORIAHNN', 'ORILISSA']
 for p in product_types:
@@ -266,7 +270,8 @@ fig, ax = plt.subplots(1, len(priority_cols), figsize=(20, 5))
 for i, feature in enumerate(df[priority_cols]):
     df[feature].value_counts()[['H', 'M', 'L', 'VL']].plot(kind="bar", ax=ax[i]).set_title(feature)'''
 # Venn diagram of HCP approvals by product
-s60 = '''lolo_hcp = set(df[df['FINAL_PRIORIITY'].notnull() & df['APPROVED_LOLO'] == 1.0]['ABBOTT_CUSTOMER_ID'])
+s60 = '''import matplotlib_venn as v
+lolo_hcp = set(df[df['FINAL_PRIORIITY'].notnull() & df['APPROVED_LOLO'] == 1.0]['ABBOTT_CUSTOMER_ID'])
 oriahnn_hcp = set(df[df['FINAL_PRIORIITY'].notnull() & df['APPROVED_ORIAHNN'] == 1.0]['ABBOTT_CUSTOMER_ID'])
 orilissa_hcp = set(df[df['FINAL_PRIORIITY'].notnull() & df['APPROVED_ORILISSA'] == 1.0]['ABBOTT_CUSTOMER_ID'])
 v.venn3([lolo_hcp, oriahnn_hcp, orilissa_hcp], set_labels=('LOLO', 'ORIAHNN', 'ORILISSA'))'''
@@ -290,21 +295,21 @@ s64 = '''dea_revoked_hcps = df[df['DEA_REVOKED'] == 1]
 print('Number of DEA revoked HCPs:', dea_revoked_hcps.shape[0])'''
 #Access by state (highly accessible state vs least accessible)
 s65 = '''access = df.groupby('ST')['AM_NO_SEE_RATING'].mean().sort_values(ascending=False)
-print(pd.DataFrame(access))'''
+print(access)'''
 # Average call activity, access monitor at Priority level
 s66 = '''call_activity = df.groupby(['LOLO_PRIORITY', 'ORIL_PRIORITY', 'ORIAHNN_PRIORITY'])['ANNUAL_CALL_FREQ_PERC_50'].mean().sort_values(ascending=False)
-print(pd.DataFrame(call_activity))'''
+print(call_activity)'''
 # Distribution of HCPs by TAP feedback (current/prior)
 s67 = '''df[df['ACCESSIBILITY_FEEDBACK'] != '-']['ACCESSIBILITY_FEEDBACK'].value_counts().plot(kind="bar").set_title('ACCESSIBLITY_FEEDBACK')'''
 # HCPs with HR compliance issue
 s68 = '''print('Number of HCPs with HR compliance issue:', df[df['HR_COMPLIANCE_RMV'].notnull()].shape[0])'''
 # Ability to create cross-tabs on any 2 metrics
-s69 = '''pd.crosstab(df['LOLO_NBRX_DECILE'], df['ORILISSA_NBRX_DECILE'])'''
+s69 = '''print(pd.crosstab(df['LOLO_NBRX_DECILE'], df['ORILISSA_NBRX_DECILE']))'''
 # Correlation b/w Oriahnn and Orilissa writers
 s70 = '''print('Correlation between ORIAHNN writers and ORILISSA writers:', df['APPROVED_ORIAHNN'].corr(df['APPROVED_ORILISSA']))'''
 # Average LOLO TRx at Priority level
 s71 = '''lolo_priority_trx = df.groupby('LOLO_PRIORITY')['LOLO_TRX_52WK'].mean()
-print(pd.DataFrame(lolo_priority_trx))'''
+print(lolo_priority_trx)'''
 #Range of TRx, NBRx at Priority level
 s72 = '''priorities = ['H', 'M', 'L', 'VL']
 maxvals_trx = df.groupby('LOLO_PRIORITY')['LOLO_TRX_52WK'].max()[priorities].values

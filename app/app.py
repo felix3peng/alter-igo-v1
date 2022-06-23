@@ -6,8 +6,9 @@ warnings.warn = warn
 import os
 import numpy as np
 import pandas as pd
-pd.set_option('display.max_columns', 500)
+pd.set_option('display.max_columns', None)
 pd.set_option('display.expand_frame_repr', False)
+pd.set_option('display.max_rows', None)
 from flask import Flask, Blueprint, flash, g, redirect, render_template
 from flask import request, session, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -96,16 +97,22 @@ def runcode(text, args=None):
     if args is None:
         try:
             exec(cc_dict[text], tldict)
+        except KeyError:
+            pass
         except:
             print('something went wrong. ensure target & train-test split set')
     elif len(args) == 1:
         try:
             exec(cc_dict[text].format(args[0]), tldict)
+        except KeyError:
+            pass
         except:
             print('something went wrong. ensure target & train-test split set')
     else:
         try:
             exec(cc_dict[text].format(*args), tldict)
+        except KeyError:
+            pass
         except:
             print('something went wrong. ensure target & train-test split set')
     fig = plt.gcf()
@@ -121,6 +128,8 @@ def runcode(text, args=None):
         if args is None:
             try:
                 exec(cc_dict[text], ldict)
+            except KeyError:
+                pass
             except:
                 print('something went wrong. ensure target & train-test split set')
         elif len(args) == 1:
@@ -142,7 +151,9 @@ def runcode(text, args=None):
         # further parsing to determine if plain string or dataframe
         if bool(re.search(r'[\s]{3,}', output)):
             outputtype = 'dataframe'
-            temp_df = pd.read_csv(StringIO(output), delim_whitespace=True)
+            headers = re.split('\s+', output.partition('\n')[0])[1:]
+            temp_df = pd.read_csv(StringIO(output.split('\n', 1)[1]), delimiter=r"\s{2,}", names=headers)
+            temp_df
             if '[' in str(temp_df.index[-1]):
                 temp_df.drop(temp_df.tail(1).index, inplace=True)
             output = temp_df.to_html(classes='table', table_id='table'+str(numtables), max_cols=500)
@@ -232,6 +243,7 @@ def home():
 # create a function to read form inputs and process a set of outputs in json
 @app.route('/process')
 def process():
+    global codex_context
     command = request.args.get('command')
     extra_args = []
 
@@ -300,19 +312,21 @@ def process():
         else:
             codeblock = code.format(*argtuple)
         print(codeblock, '\n')
+        codex_context += '# ' + command + '\n'
+        codex_context += codeblock + '\n'
         if len(argtuple) > 0:
-            [outputtype, output] = runcode(cmd, argtuple)
+            [outputtype, output] = runcode(base_cmd, argtuple)
         else:
-            [outputtype, output] = runcode(cmd)
+            [outputtype, output] = runcode(base_cmd)
         outputs = [outputtype, command, codeblock, output]
     elif cmd_match == False:
         # call OpenAI codex API to get codeblock
-        
+        codex_context += '# ' + command + '\n'
         outputs = ['string', command, '', 'No matching command found']
         # call openai api using code-davinci-002 to generate code from the command
         response = openai.Completion.create(
             model="code-davinci-002",
-            prompt="",
+            prompt=codex_context,
             temperature=0.13,
             max_tokens=300,
             top_p=1,
