@@ -5,7 +5,19 @@ CODE PAIRINGS
 '''
 # load data, no args
 s1 = '''import pandas as pd
-df = pd.read_csv('TIF_FIX_v0.1.csv', delimiter='|', header=0, low_memory=False)
+import os
+from os import path
+cwd = os.getcwd()
+df = pd.read_csv(path.join(cwd, 'TIF_FIX_v0.1.txt'), delimiter='|', header=0, dtype=str)
+numerical_cols = ['NBRX', 'TRX', 'DECILE', 'APPROVED', 'RATING', 'PERC', 'CALLS', 'PDES']
+for col in df.columns:
+    if any(x in col for x in numerical_cols):
+        try:
+            df[col] = df[col].astype(float)
+        except ValueError:
+            pass
+    if 'PROPORTION' in col:
+        df[col] = df[col].str.replace('%', '').astype(float)/100
 print(df.head())'''
 # summarize data, no args
 s2 = '''print(df.describe())'''
@@ -181,29 +193,128 @@ X = pd.concat([X, Xlog], axis=1)'''
 s41 = '''X['{2}'] = X['{0}'] * X['{1}']'''
 # show columns of X
 s42 = '''print(list(X.columns))'''
-# create decile of feature
-s43 = '''temp = X['{0}'].replace(0, np.nan)
-X['{0}_DECILE'] = pd.qcut(temp, 10, labels=False)
-X['{0}_DECILE'] += 1
-X['{0}_DECILE'].replace(np.nan, 0, inplace=True)
-print(X['{0}_DECILE'].value_counts().sort_index())'''
-# create deciles for all trx columns
-s44 = '''for col in X.columns:
-    if 'trx' in col.lower():
-        temp = X[col].replace(0, np.nan)
-        X[col + '_DECILE'] = pd.qcut(temp, 10, labels=False)
-        X[col + '_DECILE'] += 1
-        X[col + '_DECILE'].replace(np.nan, 0, inplace=True)
-        print(X[col + '_DECILE'].value_counts().sort_index())'''
-# create deciles for all nbrx columns
-s45 = '''for col in X.columns:
-    if 'nbrx' in col.lower():
-        temp = X[col].replace(0, np.nan)
-        X[col + '_DECILE'] = pd.qcut(temp, 10, labels=False)
-        X[col + '_DECILE'] += 1
-        X[col + '_DECILE'].replace(np.nan, 0, inplace=True)
-        print(X[col + '_DECILE'].value_counts().sort_index())'''
+# create decile of LOLO NBRX
+s43 = '''sums = df['LOLO_NBRX_52WK'].replace(0, np.nan).sort_values(ascending=True).cumsum()
+sums_dec = np.floor(sums/(df['LOLO_NBRX_52WK'].sum()/10))
+sums_dec[sums_dec == 10] = 9
+sums_dec += 1
+sums_dec.replace(np.nan, 0, inplace=True)
+df['LOLO_NBRX_52WK_DECILE'] = sums_dec.sort_index(ascending=True)
+print(df['LOLO_NBRX_52WK_DECILE'].value_counts().sort_index())'''
+# create decile of ORIAHNN NBRX
+s44 = '''sums = df['ORIAHNN_NBRX_LTD'].replace(0, np.nan).sort_values(ascending=True).cumsum()
+sums_dec = np.floor(sums/(df['ORIAHNN_NBRX_LTD'].sum()/10))
+sums_dec[sums_dec == 10] = 9
+sums_dec += 1
+sums_dec.replace(np.nan, 0, inplace=True)
+df['ORIAHNN_NBRX_LTD_DECILE'] = sums_dec.sort_index(ascending=True)
+print(df['ORIAHNN_NBRX_LTD_DECILE'].value_counts().sort_index())'''
 # generate a count for each product
+s45 = '''product_types = ['LOLO', 'ORIAHNN', 'ORILISSA']
+for p in product_types:
+    print(df[df['APPROVED_' + p] == 1].shape[0], 'approved for', p)'''
+# check how many null entries are in IMS_NUMBER
+s46 = '''print(df['IMS_NUMBER'].isnull().sum(), 'null values in IMS_NUMBER')'''
+# remove records with null IMS_NUMBER
+s47 = '''df = df[df['IMS_NUMBER'].notnull()]'''
+# check how many null entries are in ZIP
+s48 = '''print(df['ZIP'].isnull().sum(), 'null values in ZIP')'''
+# remove records with null ZIP
+s49 = '''df = df[df['ZIP'].notnull()]'''
+# check how many null entries are in STANDARD_FIRST_NAME or STANDARD_LAST_NAME
+s50 = '''mask = df['STANDARD_FIRST_NAME'].isnull() | df['STANDARD_LAST_NAME'].isnull()
+print(df[mask].shape[0], 'records with null STANDARD_FIRST_NAME or STANDARD_LAST_NAME')'''
+# remove records with null STANDARD_FIRST_NAME or STANDARD_LAST_NAME
+s51 = '''mask = df['STANDARD_FIRST_NAME'].isnull() | df['STANDARD_LAST_NAME'].isnull()
+df = df[~mask]'''
+# how many records have a null specialty
+s52 = '''print(df['ABBOTT_BEST_SPECIALTY_CODE'].isnull().sum(), 'null entries for ABBOTT_BEST_SPECIALTY_CODE')'''
+# remove records with null specialty
+s53 = '''df = df[df['ABBOTT_BEST_SPECIALTY_CODE'].notnull()]'''
+# check if the length of IMS_NUMBER is the same for every record
+s54 = '''if df[df['IMS_NUMBER'].notnull()]['IMS_NUMBER'].astype(str).str.len().nunique() == 1:
+    print('IMS_NUMBER is the same length for every record')
+else:
+    print('IMS_NUMBER is not the same length for every record')'''
+# check if the length of ZIP is the same for every record
+s55 = '''if df[df['ZIP'].notnull()]['ZIP'].astype(str).str.len().nunique() == 1:
+    print('ZIP is the same length for every record')
+else:
+    print('ZIP is not the same length for every record')'''
+# maximum number of addresses
+s56 = '''dupes = df.duplicated(subset=['ABBOTT_CUSTOMER_ID'])
+nondupe_addr = df[~dupes][['ABBOTT_CUSTOMER_ID', 'ADDR1', 'ADDR2']]
+dupe_addr = df[dupes][['ABBOTT_CUSTOMER_ID', 'ADDR1', 'ADDR2']]
+merged = nondupe_addr.merge(dupe_addr, on='ABBOTT_CUSTOMER_ID', how='outer')
+print('Maximum number of addresses for an HCP is:', (merged.count(axis=1) - 1).max())'''
+# top 10 prescribers of LOLO by state
+s57 = '''top10bystate = pd.DataFrame(index=np.arange(0, 10), columns=df['ST'].unique())
+for s in df['ST'].unique():
+    flname = df[df['ST'] == s].sort_values(by='LOLO_NBRX_52WK', ascending=False).drop_duplicates(subset=['ABBOTT_CUSTOMER_ID']).reset_index(drop=True)[:10]
+    top10bystate[s] = (flname['STANDARD_FIRST_NAME'] + ' ' + flname['STANDARD_LAST_NAME'])
+print(top10bystate)'''
+# top 10 prescribers of LOLO by territory
+s58 = '''top10byterritory = pd.DataFrame(index=np.arange(0, 10), columns=df['TERRITORY_NUMBER_WH3'].unique())
+for t in df['TERRITORY_NUMBER_WH3'].unique():
+    flname = df[df['TERRITORY_NUMBER_WH3'] == t].sort_values(by='LOLO_NBRX_52WK', ascending=False).drop_duplicates(subset=['ABBOTT_CUSTOMER_ID']).reset_index(drop=True)[:10]
+    top10byterritory[t] = (flname['STANDARD_FIRST_NAME'] + ' ' + flname['STANDARD_LAST_NAME'])
+print(top10byterritory)'''
+# Histogram by product by priority
+s59 = '''import matplotlib.pyplot as plt
+priority_cols = ['LOLO_PRIORITY', 'ORIAHNN_PRIORITY', 'ORIL_PRIORITY']
+fig, ax = plt.subplots(1, len(priority_cols), figsize=(20, 5))
+for i, feature in enumerate(df[priority_cols]):
+    df[feature].value_counts()[['H', 'M', 'L', 'VL']].plot(kind="bar", ax=ax[i]).set_title(feature)'''
+# Venn diagram of HCP approvals by product
+s60 = '''lolo_hcp = set(df[df['FINAL_PRIORIITY'].notnull() & df['APPROVED_LOLO'] == 1.0]['ABBOTT_CUSTOMER_ID'])
+oriahnn_hcp = set(df[df['FINAL_PRIORIITY'].notnull() & df['APPROVED_ORIAHNN'] == 1.0]['ABBOTT_CUSTOMER_ID'])
+orilissa_hcp = set(df[df['FINAL_PRIORIITY'].notnull() & df['APPROVED_ORILISSA'] == 1.0]['ABBOTT_CUSTOMER_ID'])
+v.venn3([lolo_hcp, oriahnn_hcp, orilissa_hcp], set_labels=('LOLO', 'ORIAHNN', 'ORILISSA'))'''
+# Co-relation of writers vs priority
+s61 = '''priority_coded_lolo = df['LOLO_PRIORITY'].replace(['H', 'M', 'L', 'VL'], [4, 3, 2, 1])
+print('Correlation between LOLO writers and priority:', df['APPROVED_LOLO'].corr(priority_coded_lolo))
+priority_coded_oriahnn = df['ORIAHNN_PRIORITY'].replace(['H', 'M', 'L', 'VL'], [4, 3, 2, 1])
+print('Correlation between ORIAHNN writers and priority:', df['APPROVED_ORIAHNN'].corr(priority_coded_oriahnn))
+priority_coded_orilissa = df['ORIL_PRIORITY'].replace(['H', 'M', 'L', 'VL'], [4, 3, 2, 1])
+print('Correlation between ORILISSA writers and priority:', df['APPROVED_ORILISSA'].corr(priority_coded_orilissa))'''
+# Which metric is a better indicator of writers (Medically treated over Diagnosed)?
+s62 = '''med_trx_corr = df[df['LOLO_TRX_52WK'] != 0]['LOLO_TRX_52WK'].corr(df[df['LOLO_TRX_52WK'] != 0]['PROPORTION_OF_MED_TREATED'])
+diag_trx_corr = df[df['LOLO_TRX_52WK'] != 0]['LOLO_TRX_52WK'].corr(df[df['LOLO_TRX_52WK'] != 0]['UF_IN_OFFICE_DIAGNOSED_PAT_DECILE'])
+print('Medication treatment correlation:', med_trx_corr)
+print('Diagnosis treatment correlation:', diag_trx_corr)'''
+# find Kaiser HCPs
+s63 = '''kaiser_hcps = df[df['IN_KAISER'] == 1]
+print('Number of Kaiser HCPs:', kaiser_hcps.shape[0])'''
+# find DEA revoked HCPs
+s64 = '''dea_revoked_hcps = df[df['DEA_REVOKED'] == 1]
+print('Number of DEA revoked HCPs:', dea_revoked_hcps.shape[0])'''
+#Access by state (highly accessible state vs least accessible)
+s65 = '''access = df.groupby('ST')['AM_NO_SEE_RATING'].mean().sort_values(ascending=False)
+print(pd.DataFrame(access))'''
+# Average call activity, access monitor at Priority level
+s66 = '''call_activity = df.groupby(['LOLO_PRIORITY', 'ORIL_PRIORITY', 'ORIAHNN_PRIORITY'])['ANNUAL_CALL_FREQ_PERC_50'].mean().sort_values(ascending=False)
+print(pd.DataFrame(call_activity))'''
+# Distribution of HCPs by TAP feedback (current/prior)
+s67 = '''df[df['ACCESSIBILITY_FEEDBACK'] != '-']['ACCESSIBILITY_FEEDBACK'].value_counts().plot(kind="bar").set_title('ACCESSIBLITY_FEEDBACK')'''
+# HCPs with HR compliance issue
+s68 = '''print('Number of HCPs with HR compliance issue:', df[df['HR_COMPLIANCE_RMV'].notnull()].shape[0])'''
+# Ability to create cross-tabs on any 2 metrics
+s69 = '''pd.crosstab(df['LOLO_NBRX_DECILE'], df['ORILISSA_NBRX_DECILE'])'''
+# Correlation b/w Oriahnn and Orilissa writers
+s70 = '''print('Correlation between ORIAHNN writers and ORILISSA writers:', df['APPROVED_ORIAHNN'].corr(df['APPROVED_ORILISSA']))'''
+# Average LOLO TRx at Priority level
+s71 = '''lolo_priority_trx = df.groupby('LOLO_PRIORITY')['LOLO_TRX_52WK'].mean()
+print(pd.DataFrame(lolo_priority_trx))'''
+#Range of TRx, NBRx at Priority level
+s72 = '''priorities = ['H', 'M', 'L', 'VL']
+maxvals_trx = df.groupby('LOLO_PRIORITY')['LOLO_TRX_52WK'].max()[priorities].values
+minvals_trx = df.groupby('LOLO_PRIORITY')['LOLO_TRX_52WK'].min()[priorities].values
+for i in range(len(priorities)):
+    print('Range of TRx for', priorities[i],'priority:', minvals_trx[i], '-', maxvals_trx[i])
+maxvals_nbrx = df.groupby('LOLO_PRIORITY')['LOLO_NBRX_52WK'].max()[priorities].values
+minvals_nbrx = df.groupby('LOLO_PRIORITY')['LOLO_NBRX_52WK'].min()[priorities].values
+for i in range(len(priorities)):
+    print('Range of NBRx for', priorities[i],'priority:', minvals_nbrx[i], '-', maxvals_nbrx[i])'''
 
 
 '''
@@ -250,7 +361,37 @@ cc_dict = {'load data': s1,
            'show y_test': s39,
            'create new features, log of every feature': s40,
            'create new feature, product of feat and feat and call it new_feat': s41,
-           'what are the columns of x': s42}
+           'what are the columns of x': s42,
+           'create a decile column for LOLO NBRx': s43,
+           'create a decile column for ORIAHNN NBRx': s44,
+           'generate a count for each product': s45,
+           'check how many null IMS_NUMBER exist': s46,
+           'remove null IMS_NUMBER': s47,
+           'check how many null ZIP exist': s48,
+           'remove null ZIP': s49,
+           'check how many null first or last name exist': s50,
+           'remove records with null first or last name': s51,
+           'check how many null specialty exist': s52,
+           'remove records with null specialty': s53,
+           'check if length of IMS_NUMBER is the same for all records': s54,
+           'check if length of ZIP is the same for all records': s55,
+           'maximum number of addresses': s56,
+           'top 10 prescribers of LOLO by state': s57,
+           'top 10 prescribers of LOLO by territory': s58,
+           'create histogram by product by priority': s59,
+           'create venn diagram of HCPs by product': s60,
+           'correlation of writers by priority': s61,
+           'is medically treated or diagnosed a better indicator of writers': s62,
+           'find kaiser affiliated HCPs': s63,
+           'find DEA revoked HCPs': s64,
+           'accessibility by state': s65,
+           'average call activity by priority level': s66,
+           'distribution of HCPs by TAP feedback': s67,
+           'HCPs with HR compliance issue': s68,
+           'ability to create cross-tabs on any 2 metrics': s69,
+           'correlation between Oriahnn and Orilissa writers': s70,
+           'average LOLO TRx at Priority level': s71,
+           'range of LOLO TRx, NBRx at Priority level': s72}
 
 '''
 COMMAND-COMMAND DICTIONARY
@@ -331,4 +472,56 @@ cm_dict = {'load the data': 'load data',
            'take product of feat and feat and call it new_feat': 'create new feature, product of feat and feat and call it new_feat',
            'multiply feat and feat and call it new_feat': 'create new feature, product of feat and feat and call it new_feat',
            'column names of x': 'what are the columns of x',
-           'features of x': 'what are the columns of x'}
+           'features of x': 'what are the columns of x',
+           'add a decile for lolo nbrx': 'create a decile column for LOLO NBRx',
+           'add a decile for oriahnn nbrx': 'create a decile column for ORIAHNN NBRx',
+           'count hcps by product': 'generate a count for each product',
+           'hcps distributed by product': 'generate a count for each product',
+           'null entries for ims_number': 'check how many null IMS_NUMBER exist',
+           'records with empty ims_number': 'check how many null IMS_NUMBER exist',
+           'delete entries with empty ims number': 'remove null IMS_NUMBER',
+           'null entries for zip': 'check how many null ZIP exist',
+           'records with empty zip': 'check how many null ZIP exist',
+           'delete entries with empty zip': 'remove null ZIP',
+           'null entries for first name or last name': 'check how many null first or last name exist',
+           'records with empty first name or last name': 'check how many null first or last name exist',
+           'delete entries with empty first name or last name': 'remove records with null first or last name',
+           'null entries for specialty': 'check how many null specialty exist',
+           'records with empty specialty': 'check how many null specialty exist',
+           'delete entries with empty specialty': 'remove records with null specialty',
+           'is ims number the same length for all records?': 'check if length of IMS_NUMBER is the same for all records',
+           'is ims number length consistent': 'check if length of IMS_NUMBER is the same for all records',
+           'is zip the same length for all records?': 'check if length of ZIP is the same for all records',
+           'is zip length consistent': 'check if length of ZIP is the same for all records',
+           'what is the maximum number of addresses an hcp has on file': 'maximum number of addresses',
+           'do any hcps have multiple addresses on file': 'maximum number of addresses',
+           'show the top 10 prescribers of lolo by state': 'top 10 prescribers of LOLO by state',
+           'show the top 10 prescribers of lolo by territory': 'top 10 prescribers of LOLO by territory',
+           'plot a histogram for each product priority': 'create histogram by product by priority',
+           'plot histogram by product by priority': 'create histogram by product by priority',
+           'plot venn diagram of hcps by product': 'create venn diagram of HCPs by product',
+           'venn diagram by product': 'create venn diagram of HCPs by product',
+           'correlation of writers by priority': 'correlation of writers by priority',
+           'correlation between writers and product priority': 'correlation of writers by priority',
+           'medically treated vs diagnosed to indicate writers': 'is medically treated or diagnosed a better indicator of writers',
+           'is medical treatment or diagnoses a better indicator of writers': 'is medically treated or diagnosed a better indicator of writers',
+           'how many hcps are affiliated with kaiser': 'find kaiser affiliated HCPs',
+           'find kaiser affiliated hcps': 'find kaiser affiliated HCPs',
+           'how many hcps are dea revoked': 'find DEA revoked HCPs',
+           'find dea revoked hcps': 'find DEA revoked HCPs',
+           'show accessibility by state': 'accessibility by state',
+           'access by state': 'accessibility by state',
+           'average call activity for each priority level': 'average call activity by priority level',
+           'what is the average call activity for each priority level': 'average call activity by priority level',
+           'distribution of hcps by tap feedback': 'distribution of HCPs by TAP feedback',
+           'create a histogram of hcps by tap feedback': 'distribution of HCPs by TAP feedback',
+           'how many hcps have hr compliance issues': 'HCPs with HR compliance issue',
+           'hcps with hr compliance issues': 'HCPs with HR compliance issue',
+           'cross tabs of lolo and orilissa nbrx': 'ability to create cross-tabs on any 2 metrics',
+           'show me the cross tabs of lolo and orilissa nbrx': 'ability to create cross-tabs on any 2 metrics',
+           'correlation between oriahnn and orilissa writers': 'correlation between Oriahnn and Orilissa writers',
+           'what is the correlation between oriahnn and orilissa writers': 'correlation between Oriahnn and Orilissa writers',
+           'average lolo trx by priority': 'average LOLO TRx at Priority level',
+           'what is the average lolo trx by priority': 'average LOLO TRx at Priority level',
+           'range of lolo trx and nbrx by priority': 'range of LOLO TRx, NBRx at Priority level',
+           'what is the range of lolo trx and nbrx by priority': 'range of LOLO TRx, NBRx at Priority level'}

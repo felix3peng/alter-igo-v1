@@ -35,16 +35,14 @@ import pickle
 import shap
 import socket
 from resources import cc_dict, cm_dict
+from matplotlib_venn import venn2
 
 # global declarations
 global numtables, numplots
 global codex_context
 
+# string containing all commands and code to be fed to codex API
 codex_context = ''
-
-'''
-COMMAND-CODE DICTIONARY
-'''
 
 '''
 EMBEDDINGS
