@@ -297,7 +297,7 @@ print('Number of DEA revoked HCPs:', dea_revoked_hcps.shape[0])'''
 s65 = '''access = df.groupby('ST')['AM_NO_SEE_RATING'].mean().sort_values(ascending=False)
 print(access)'''
 # Average call activity, access monitor at Priority level
-s66 = '''call_activity = df.groupby(['LOLO_PRIORITY', 'ORIL_PRIORITY', 'ORIAHNN_PRIORITY'])['ANNUAL_CALL_FREQ_PERC_50'].mean().sort_values(ascending=False)
+s66 = '''call_activity = df.groupby('LOLO_PRIORITY')['ANNUAL_CALL_FREQ_PERC_50'].mean().sort_values(ascending=False)
 print(call_activity)'''
 # Distribution of HCPs by TAP feedback (current/prior)
 s67 = '''df[df['ACCESSIBILITY_FEEDBACK'] != '-']['ACCESSIBILITY_FEEDBACK'].value_counts().plot(kind="bar").set_title('ACCESSIBLITY_FEEDBACK')'''
@@ -320,6 +320,12 @@ maxvals_nbrx = df.groupby('LOLO_PRIORITY')['LOLO_NBRX_52WK'].max()[priorities].v
 minvals_nbrx = df.groupby('LOLO_PRIORITY')['LOLO_NBRX_52WK'].min()[priorities].values
 for i in range(len(priorities)):
     print('Range of NBRx for', priorities[i],'priority:', minvals_nbrx[i], '-', maxvals_nbrx[i])'''
+# Average call activity, access monitor at Orilissa priority level
+s73 = '''call_activity = df.groupby('ORIL_PRIORITY')['ANNUAL_CALL_FREQ_PERC_50'].mean().sort_values(ascending=False)
+print(call_activity)'''
+# Average call activity, access monitor at Oriahnn priority level
+s74 = '''call_activity = df.groupby('ORIAHNN_PRIORITY')['ANNUAL_CALL_FREQ_PERC_50'].mean().sort_values(ascending=False)
+print(call_activity)'''
 
 
 '''
@@ -390,13 +396,15 @@ cc_dict = {'load data': s1,
            'find kaiser affiliated HCPs': s63,
            'find DEA revoked HCPs': s64,
            'accessibility by state': s65,
-           'average call activity by priority level': s66,
+           'average call activity by priority level for lolo': s66,
            'distribution of HCPs by TAP feedback': s67,
            'HCPs with HR compliance issue': s68,
            'ability to create cross-tabs on any 2 metrics': s69,
            'correlation between Oriahnn and Orilissa writers': s70,
            'average LOLO TRx at Priority level': s71,
-           'range of LOLO TRx, NBRx at Priority level': s72}
+           'range of LOLO TRx, NBRx at Priority level': s72,
+           'average call activity by priority level for orilissa': s73,
+           'average call activity by priority level for oriahnn': s74}
 
 '''
 COMMAND-COMMAND DICTIONARY
@@ -516,8 +524,8 @@ cm_dict = {'load the data': 'load data',
            'find dea revoked hcps': 'find DEA revoked HCPs',
            'show accessibility by state': 'accessibility by state',
            'access by state': 'accessibility by state',
-           'average call activity for each priority level': 'average call activity by priority level',
-           'what is the average call activity for each priority level': 'average call activity by priority level',
+           'average call activity by lolo priority': 'average call activity by priority level for lolo',
+           'what is the average call activity by lolo priority': 'average call activity by priority level for lolo',
            'distribution of hcps by tap feedback': 'distribution of HCPs by TAP feedback',
            'create a histogram of hcps by tap feedback': 'distribution of HCPs by TAP feedback',
            'how many hcps have hr compliance issues': 'HCPs with HR compliance issue',
@@ -529,4 +537,8 @@ cm_dict = {'load the data': 'load data',
            'average lolo trx by priority': 'average LOLO TRx at Priority level',
            'what is the average lolo trx by priority': 'average LOLO TRx at Priority level',
            'range of lolo trx and nbrx by priority': 'range of LOLO TRx, NBRx at Priority level',
-           'what is the range of lolo trx and nbrx by priority': 'range of LOLO TRx, NBRx at Priority level'}
+           'what is the range of lolo trx and nbrx by priority': 'range of LOLO TRx, NBRx at Priority level',
+           'average call activity by orilissa priority': 'average call activity by priority level for orilissa',
+           'what is the average call activity by orilissa priority': 'average call activity by priority level for orilissa',
+           'average call activity by oriahnn priority': 'average call activity by priority level for oriahnn',
+           'what is the average call activity by oriahnn priority': 'average call activity by priority level for oriahnn'}
