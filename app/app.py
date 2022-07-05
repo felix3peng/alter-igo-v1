@@ -2,6 +2,8 @@
 def warn(*args, **kwargs):
     pass
 import warnings
+
+from click import command
 warnings.warn = warn
 import os
 import numpy as np
@@ -14,7 +16,6 @@ from flask import request, session, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import text
 import sqlite3
-import openai
 import inspect
 from itertools import groupby
 from subprocess import Popen, PIPE
@@ -23,6 +24,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+import matplotlib_venn as v
 import base64
 import sys
 import re
@@ -35,15 +37,16 @@ from openai.embeddings_utils import get_embedding, cosine_similarity
 import pickle
 import shap
 import socket
-from resources import cc_dict, cm_dict
-from matplotlib_venn import venn2
+from resources import cc_dict, cm_dict, s00
 
 # global declarations
 global numtables, numplots
-global codex_context
+global codex_context, error_msg
 
 # string containing all commands and code to be fed to codex API
 codex_context = ''
+codex_context += '# import standard libraries\n\n'
+codex_context += s00 + '\n\n'
 
 '''
 EMBEDDINGS
@@ -89,8 +92,9 @@ numplots = 0
 
 # helper function for running code stored in dictionary
 # passing on KeyErrors when re-running due to column drop errors
+error_msg = 'Sorry, something went wrong. Please check the code and edit as needed'
 def runcode(text, args=None):
-    global numtables, numplots
+    global numtables, numplots, error_msg
     # turn off plotting and run function, try to grab fig and save in buffer
     tldict = ldict.copy()
     plt.ioff()
@@ -100,21 +104,21 @@ def runcode(text, args=None):
         except KeyError:
             pass
         except:
-            print('something went wrong. ensure target & train-test split set')
+            print(error_msg)
     elif len(args) == 1:
         try:
             exec(cc_dict[text].format(args[0]), tldict)
         except KeyError:
             pass
         except:
-            print('something went wrong. ensure target & train-test split set')
+            print(error_msg)
     else:
         try:
             exec(cc_dict[text].format(*args), tldict)
         except KeyError:
             pass
         except:
-            print('something went wrong. ensure target & train-test split set')
+            print(error_msg)
     fig = plt.gcf()
     buf = BytesIO()
     fig.savefig(buf, format="png")
@@ -131,21 +135,21 @@ def runcode(text, args=None):
             except KeyError:
                 pass
             except:
-                print('something went wrong. ensure target & train-test split set')
+                print(error_msg)
         elif len(args) == 1:
             try:
                 exec(cc_dict[text].format(args[0]), ldict)
             except KeyError:
                 pass
             except:
-                print('something went wrong. ensure target & train-test split set')
+                print(error_msg)
         else:
             try:
                 exec(cc_dict[text].format(*args), ldict)
             except KeyError:
                 pass
             except:
-                print('something went wrong. ensure target & train-test split set')
+                print(error_msg)
         output = new_stdout.getvalue()
         sys.stdout = old_stdout
         # further parsing to determine if plain string or dataframe
@@ -171,7 +175,60 @@ def runcode(text, args=None):
         return [outputtype, output]
 
 
-# log results to db
+# helper function for running raw code
+def runcode_raw(code):
+    global numtables, numplots, error_msg
+    # turn off plotting and run function, try to grab fig and save in buffer
+    tldict = ldict.copy()
+    plt.ioff()
+    try:
+        exec(code, tldict)
+    except KeyError:
+        pass
+    except:
+        print(error_msg)
+    fig = plt.gcf()
+    buf = BytesIO()
+    fig.savefig(buf, format="png")
+    plt.close()
+    p = Image.open(buf)
+    x = np.array(p.getdata(), dtype=np.uint8).reshape(p.size[1], p.size[0], -1)
+    # if min and max colors are the same, it wasn't a plot - re-run as string
+    if np.min(x) == np.max(x):
+        new_stdout = StringIO()
+        sys.stdout = new_stdout
+        try:
+            exec(code, ldict)
+        except KeyError:
+            pass
+        except:
+            print(error_msg)
+        output = new_stdout.getvalue()
+        sys.stdout = old_stdout
+        # further parsing to determine if plain string or dataframe
+        if bool(re.search(r'[\s]{3,}', output)):
+            outputtype = 'dataframe'
+            headers = re.split('\s+', output.partition('\n')[0])[1:]
+            temp_df = pd.read_csv(StringIO(output.split('\n', 1)[1]), delimiter=r"\s{2,}", names=headers)
+            temp_df
+            if '[' in str(temp_df.index[-1]):
+                temp_df.drop(temp_df.tail(1).index, inplace=True)
+            output = temp_df.to_html(classes='table', table_id='table'+str(numtables), max_cols=500)
+            numtables += 1
+        else:
+            outputtype = 'string'
+        return [outputtype, output]
+    # if it was a plot, then output as HTML image from buffer
+    else:
+        data = base64.b64encode(buf.getbuffer()).decode("ascii")
+        output = "<img id='image{0}' src='data:image/png;base64,{1}'/>".format(numplots, data)
+        outputtype = 'image'
+        numplots += 1
+        ldict.update(tldict)
+        return [outputtype, output]
+
+
+# log results to log db
 def log_commands(outputs):
     # unpack outputs into variables
     _, cmd, code, _ = outputs
@@ -181,6 +238,24 @@ def log_commands(outputs):
     db.session.add(record)
     db.session.commit()
     return record.id
+
+
+# log results to code edit db
+def log_edit(edit):
+    dt = str(datetime.now())
+    command, orig_code, edited_code, orig_ref = edit
+    record = Code_Edits(dt, command, orig_code, edited_code, orig_ref)
+    db.session.add(record)
+    db.session.commit()
+    return record.id
+
+
+# retrieve entry from log db using id
+def get_log(id):
+    record = Log.query.filter_by(id=id).first()
+    cmd = record.command
+    codeblock = record.codeblock
+    return cmd, codeblock
 
 
 '''
@@ -208,6 +283,7 @@ class Log(db.Model):
     command = db.Column(db.String(1000))
     codeblock = db.Column(db.String(1000))
     feedback = db.Column(db.String(1000))
+    edit_ref = db.Column(db.Integer)
 
     def __init__(self, timestamp, command, codeblock, feedback):
         self.timestamp = timestamp
@@ -215,19 +291,24 @@ class Log(db.Model):
         self.command = command
         self.codeblock = codeblock
         self.feedback = feedback
+        self.edit_ref = None
 
 # create a class for the code_edits table in db
 class Code_Edits(db.Model):
     __tablename__ = 'code_edits'
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.String(100))
+    command = db.Column(db.String(1000))
     orig_code = db.Column(db.String(1000))
     edited_code = db.Column(db.String(1000))
+    orig_ref = db.Column(db.Integer)
 
-    def __init__(self, timestamp, orig_code, edited_code):
+    def __init__(self, timestamp, command, orig_code, edited_code, orig_ref):
         self.timestamp = timestamp
+        self.command = command
         self.orig_code = orig_code
         self.edited_code = edited_code
+        self.orig_ref = orig_ref
 
 # base route to display main html body
 @app.route('/', methods=["GET", "POST"])
@@ -291,7 +372,7 @@ def process():
         print('Best match similarity: ', np.max(sims))
         print('Best match command: ', list(cm_dict.keys())[ind])
         # set cmd_match flag to False if best similarity is 0.80 or less
-        if np.max(sims) <= 0.80:
+        if np.max(sims) <= 0.90:
             cmd_match = False
             print('Best match rejected, calling Codex API...\n')
         else:
@@ -312,8 +393,8 @@ def process():
         else:
             codeblock = code.format(*argtuple)
         print(codeblock, '\n')
-        codex_context += '# ' + command + '\n'
-        codex_context += codeblock + '\n'
+        codex_context += '# ' + command.replace('\n', '\n# ') + '\n\n'
+        codex_context += codeblock + '\n\n'
         if len(argtuple) > 0:
             [outputtype, output] = runcode(base_cmd, argtuple)
         else:
@@ -321,19 +402,27 @@ def process():
         outputs = [outputtype, command, codeblock, output]
     elif cmd_match == False:
         # call OpenAI codex API to get codeblock
+        print('match failed - calling Codex API')
         codex_context += '# ' + command + '\n'
-        outputs = ['string', command, '', 'No matching command found']
         # call openai api using code-davinci-002 to generate code from the command
         response = openai.Completion.create(
             model="code-davinci-002",
             prompt=codex_context,
             temperature=0.13,
-            max_tokens=300,
+            max_tokens=128,
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0,
             stop=["#"]
             )
+        codeblock = response['choices'][0]['text']
+        # strip leading whiteline if included
+        if codeblock[:1] == '\n':
+            codeblock = codeblock[1:]
+        codex_context += codeblock
+        print(codeblock)
+        [outputtype, output] = runcode(codeblock)
+        outputs = [outputtype, command, codeblock, output]
     
     # commit results to db and get id of corresponding entry
     newest_id = log_commands(outputs)
@@ -374,6 +463,44 @@ def negative_feedback():
     db.session.commit()
     return jsonify(id=id)
 
+
+# create a function to process code edits
+@app.route('/edit')
+def edit():
+    print('Received edit')
+    record_id = request.args.get('ref')
+    newcode = request.args.get('new_code')
+    command, oldcode = get_log(record_id)
+    [outputtype, output] = runcode_raw(newcode)
+    outputs = [outputtype, output]
+    edit = [command, oldcode, newcode, record_id]
+    edit_record_id = log_edit(edit)
+    orig_record = Log.query.filter_by(id=record_id).first()
+    orig_record.edit_ref = edit_record_id
+    db.session.commit()
+    print('Successfully processed and recorded edit')
+    return jsonify(outputs=outputs) 
+
+
+# create a function to delete record from db
+@app.route('/delete_record')
+def delete_record():
+    global codex_context
+    id = request.args.get('db_id')
+    print('Received delete request for record', id)
+    record = Log.query.filter_by(id=id).first()
+    command = '# ' + record.command.replace('\n', '\n# ') + '\n\n'
+    codeblock = record.codeblock + '\n'
+    cmd_start = codex_context.find(command)
+    cmd_end = cmd_start + len(command)
+    codex_context = codex_context[:cmd_start] + codex_context[cmd_end:]
+    code_start = codex_context.find(codeblock)
+    code_end = code_start + len(codeblock)
+    codex_context = (codex_context[:code_start] + codex_context[code_end:]).rstrip('\n') + '\n\n'
+    db.session.delete(record)
+    db.session.commit()
+    print('Successfully deleted record', id)
+    return jsonify(id=id)
 
 if __name__ == '__main__':
     app.run(debug=True)

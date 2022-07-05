@@ -78,7 +78,11 @@ html, body {
 #submit-icon,
 #refresh-icon,
 .bx-like,
-.bx-dislike {
+.bx-dislike,
+.bx-edit,
+.bx-check,
+.bx-trash,
+.bx-x {
     vertical-align: middle;
     font-size: 2rem;
     text-align: center;
@@ -86,7 +90,11 @@ html, body {
 }
 
 .thumbsup,
-.thumbsdown {
+.thumbsdown,
+.edit,
+.confirm,
+.delete,
+.cancel {
     border: none;
     color: gray;
     background-color: transparent;
@@ -203,15 +211,16 @@ h2 {
     margin-left: 3rem;
     overflow-x: auto;
     margin-right: 5px;
+    width: calc(100% - 3rem);
 }
 
 .dl_btn {
-    margin-left: 3rem;
     margin-top: 5px;
 }
 
 .codewrapper {
     margin-left: 3rem;
+    width: calc(100% - 3rem);
 }
 
 .content {
@@ -254,5 +263,9 @@ body.loading .modal {
 }
 
 body.loading .modal {
+    display: block;
+}
+
+.editbox {
     display: block;
 }

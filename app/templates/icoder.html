@@ -20,33 +20,40 @@
     <script src="{{ url_for('static', filename='highlight.min.js') }}"></script>
     <!--Script for submitting command to python and generating new content-->
     <script type=text/javascript>
+        var i=1;
+        var nt=0;
+        var np=0;
         $(document).ready(function(){
-            var i=1;
-            var nt=0;
-            var np=0;
             $('#submit').click(function(){
                 $.getJSON($SCRIPT_ROOT + '/process', {
                     command: $('#cmd').val(),
                 }, function(data){
-                    $('.content').append('<div class="commandwrapper"><div class="numlabel">['+i+']: </div><div class="command_disp"><b>'+data.outputs[1]+'</b></div><div class="feedback-btns"><button class="thumbsup" id="thumbsup'+data.outputs[4]+'" type="button" onclick="positive('+data.outputs[4]+')" title="This worked well"><i class="bx bx-like"></i></button><button class="thumbsdown" id="thumbsdown'+data.outputs[4]+'" type="button" onclick="negative('+data.outputs[4]+')" title="This did not work well"><i class="bx bx-dislike"></i></button></div></div></div>');
+                    var wrapper_id = "wrapper" + data.outputs[4];
+                    $('.content').append('<div id="' + wrapper_id + '" class="wrapper"></div>');
+                    $('#' + wrapper_id).append('<div class="commandwrapper"><div class="numlabel">['+i+']: </div><div class="command_disp"><b>'+data.outputs[1]+'</b></div><div class="feedback-btns"><button class="thumbsup" id="thumbsup'+data.outputs[4]+'" type="button" onclick="positive('+data.outputs[4]+')" title="This worked well"><i class="bx bx-like"></i></button><button class="thumbsdown" id="thumbsdown'+data.outputs[4]+'" type="button" onclick="negative('+data.outputs[4]+')" title="This did not work well"><i class="bx bx-dislike"></i></button><button class="edit" id="edit'+i+'" type="button" onclick="editcode('+i+')"><i class="bx bx-edit"></i></button><button class="delete" id="delete'+data.outputs[4]+'" type="button" onclick="deleteentry('+data.outputs[4]+')"><i class="bx bx-trash"></i></button></div></div></div>');
                     if (document.getElementById('checkbox').checked) {
-                        $('.content').append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton' data-target='#code"+i+"'></button><div class='collapse in' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
+                        $('#' + wrapper_id).append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton' data-target='#code"+i+"'></button><div class='collapse in' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
                     } else if (data.outputs[3] == "") {
-                        $('.content').append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton' data-target='#code"+i+"'></button><div class='collapse in' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
+                        $('#' + wrapper_id).append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton' data-target='#code"+i+"'></button><div class='collapse in' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
                     } else {
-                        $('.content').append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton collapsed' data-target='#code"+i+"'></button><div class='collapse' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
+                        $('#' + wrapper_id).append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton collapsed' data-target='#code"+i+"'></button><div class='collapse' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
                     }
+                    let outputdiv = document.createElement('div');
+                    outputdiv.classList = "output";
                     if (data.outputs[0] == 'image') {
-                        $('.content').append('<div class="output">'+data.outputs[3]+'</div>');
+                        $(outputdiv).append(data.outputs[3]);
+                        $('#' + wrapper_id).append(outputdiv);
                         var imgsrc = document.getElementById('image'+np).src;
-                        $('.content').append("<div class='dl_btn'><a href="+imgsrc+" download='image"+np+"'>Download as PNG</a></div>");
+                        $(outputdiv).append("<div class='dl_btn'><a href="+imgsrc+" download='image"+np+"'>Download as PNG</a></div>");
                         np++;
                     } else if (data.outputs[0] == 'dataframe') {
-                        $('.content').append("<div class='output'>"+data.outputs[3]+"</div>");
-                        $('.content').append("<div class='dl_btn'><a href='#' onclick='download_table_as_csv("+'table'+nt+");'>Download as CSV</a></div>")
+                        $(outputdiv).append(data.outputs[3]);
+                        $('#' + wrapper_id).append(outputdiv);
+                        $(outputdiv).append("<div class='dl_btn'><a href='#' onclick='download_table_as_csv("+'table'+nt+");'>Download as CSV</a></div>");
                         nt++;
                     } else if (data.outputs[3] !== "") {
-                        $('.content').append('<div class="output"><pre><code class="language-plaintext">'+data.outputs[3]+'</code></pre></div>');
+                        $(outputdiv).append('<pre><code class="language-plaintext">'+data.outputs[3]+'</code></pre>');
+                        $('#' + wrapper_id).append(outputdiv);
                     }
                     if (data.outputs[2] == '') {
                         alert("Sorry, I couldn't understand your request.");
@@ -187,6 +194,166 @@
         $(document).on({
             ajaxStart: function() { $body.addClass("loading");    },
             ajaxStop: function() { $body.removeClass("loading"); }    
+        });
+    </script>
+    <!--Script for triggering code edit on edit button onclick-->
+    <script>
+        function editcode(code_div_id) {
+            var targetdiv = document.getElementById('code'+code_div_id);
+            var origcode = targetdiv.textContent;
+            var editableText = document.createElement("textarea");
+            var editButton = document.getElementById('edit'+code_div_id);
+            var confirmButton = document.createElement("button");
+            editableText.classList = "editbox";
+            editableText.id = "editcode"+code_div_id;
+            editableText.style.height = $(targetdiv).css("height");
+            editableText.style.width = "100%";
+            editableText.value = origcode;
+            confirmButton.classList = "confirm";
+            confirmButton.id = "confirm"+code_div_id;
+            let icon = document.createElement("i");
+            icon.classList = "bx bx-check";
+            confirmButton.appendChild(icon);
+            confirmButton.type = "button";
+            confirmButton.setAttribute("onclick", "editconfirm("+code_div_id+")");
+            if (targetdiv.classList == "collapse") {
+                targetdiv.classList = "collapse in";
+            }
+            editableText.value = origcode;
+            $(targetdiv).hide(); 
+            targetdiv.insertAdjacentElement("afterend", editableText);
+            editButton.replaceWith(confirmButton);
+            cancelButton = document.createElement("button");
+            cancelButton.classList = "cancel";
+            cancelButton.id = "cancel"+code_div_id;
+            let icon2 = document.createElement("i");
+            icon2.classList = "bx bx-x";
+            cancelButton.appendChild(icon2);
+            confirmButton.insertAdjacentElement("afterend", cancelButton);
+            cancelButton.type = "button";
+            cancelButton.setAttribute("onclick", "editcancel("+code_div_id+")");
+            $(editableText).keydown(function(e) {
+                if(e.keyCode == 9) {
+                    var start = this.selectionStart;
+                    var end = this.selectionEnd;
+                    var $this = $(this);
+                    var value = $this.val();
+                    $this.val(value.substring(0, start) + "\t" + value.substring(end));
+                    this.selectionStart = this.selectionEnd = start + 1;
+                    e.preventDefault();
+                }
+                if(e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
+                    e.preventDefault();
+                    $(confirmButton).click();
+                }
+                if(e.key === "Escape") {
+                    e.preventDefault();
+                    $(cancelButton).click();
+                }
+            });
+        }
+    </script>
+    <!--Script for returning textarea to div for code-->
+    <script>
+        function editconfirm(code_div_id) {
+            var editbox = document.getElementById("editcode"+code_div_id);
+            var confirmButton = document.getElementById('confirm'+code_div_id);
+            var newdiv = document.createElement("div");
+            var editButton = document.createElement("button");
+            var editedcode = editbox.value;
+            newdiv.classList = "collapse in";
+            newdiv.id = "code"+code_div_id;
+            newdiv.appendChild(document.createElement("pre"));
+            newdiv.lastChild.appendChild(document.createElement("code"));
+            newdiv.lastChild.lastChild.class = "language-python";
+            newdiv.lastChild.lastChild.textContent = editedcode;
+            editButton.classList = "edit";
+            editButton.id = "edit"+code_div_id;
+            let icon = document.createElement("i");
+            icon.classList = "bx bx-edit";
+            editButton.append(icon);
+            editButton.type = "button";
+            editButton.setAttribute("onclick", "editcode("+code_div_id+")");
+            confirmButton.replaceWith(editButton);
+            editbox.replaceWith(newdiv);
+            var record_id = editButton.previousSibling.id.replace(/[^0-9]/g,'');
+            var outputdiv = newdiv.parentElement.nextSibling;
+            $.getJSON($SCRIPT_ROOT + '/edit', {
+                ref: record_id,
+                new_code: editedcode,
+            }, function(data) {
+                // parse the outputtype and output passed back, change outputdiv accordingly
+                var newoutput = document.createElement("div");
+                newoutput.classList = "output";
+                if (data.outputs[0] == 'image') {
+                    $(newoutput).append(data.outputs[1]);
+                    $(outputdiv).replaceWith(newoutput);
+                    var imgsrc = document.getElementById('image'+np).src;
+                    $(newoutput).append("<div class='dl_btn'><a href="+imgsrc+" download='image"+np+"'>Download as PNG</a></div>");
+                    np++;
+                } else if (data.outputs[0] == 'dataframe') {
+                    $(newoutput).append(data.outputs[1]);
+                    $(outputdiv).replaceWith(newoutput);
+                    $(newoutput).append("<div class='dl_btn'><a href='#' onclick='download_table_as_csv("+'table'+nt+");'>Download as CSV</a></div>")
+                    nt++;
+                } else if (data.outputs[1] !== "") {
+                    $(newoutput).append('<pre><code class="language-plaintext">'+data.outputs[1]+'</code></pre>');
+                    $(outputdiv).replaceWith(newoutput);
+                }
+                hljs.highlightAll();
+            })
+        }
+    </script>
+    <!---->
+    <script>
+        function editcancel(code_div_id) {
+            var targetdiv = document.getElementById('code'+code_div_id);
+            var origcode = targetdiv.textContent;
+            var editbox = document.getElementById("editcode"+code_div_id);
+            var confirmButton = document.getElementById('confirm'+code_div_id);
+            var cancelButton = document.getElementById('cancel'+code_div_id);
+            var editButton = document.createElement("button");
+            editButton.classList = "edit";
+            editButton.id = "edit"+code_div_id;
+            let icon = document.createElement("i");
+            icon.classList = "bx bx-edit";
+            editButton.append(icon);
+            editButton.type = "button";
+            editButton.setAttribute("onclick", "editcode("+code_div_id+")");
+            confirmButton.replaceWith(editButton);
+            cancelButton.remove();
+            editbox.remove();
+            $(targetdiv).show();
+            hljs.highlightAll();
+        }
+    </script>
+    <!--Script for deleting entry and corresponding database record, along with entry in codex_context-->
+    <script>
+        function deleteentry(record_id) {
+            var wrapper = document.getElementById('wrapper'+record_id);
+            var linebreak = wrapper.nextSibling;
+            $.getJSON($SCRIPT_ROOT + '/delete_record', {
+                db_id: record_id,
+            }, function(data) {
+                wrapper.remove();
+                linebreak.remove();
+            })
+        }
+    </script>
+    <!--Script for allowing tab in textareas-->
+    <script>
+        $(document).ready(function(){
+            $('textarea').keydown(function(e) {
+                if(e.keyCode == 9) {
+                    var start = this.selectionStart;
+                    var end = this.selectionEnd;
+                    var $this = $(this);
+                    var value = $this.val();
+                    $this.val(value.substring(0, start) + "\t" + value.substring(end));
+                    this.selectionStart = this.selectionEnd = start + 1;
+                    e.preventDefault();
+                }
+            });
         });
     </script>
     <!--HTML for body of page-->
