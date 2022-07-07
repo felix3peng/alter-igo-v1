@@ -504,3 +504,8 @@ def delete_record():
     db.session.commit()
     print('Successfully deleted record', id)
     return jsonify(id=id)
+
+host_ip = socket.gethostbyname(socket.gethostname())
+
+if __name__ == '__main__':
+    app.run(host=host_ip, port=5000, debug=True)
