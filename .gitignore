@@ -5,3 +5,5 @@ instance/
 .venv/
 .vscode/
 TIF_FIX_v0.1.txt
+Dockerfile
+.dockerignore

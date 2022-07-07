@@ -73,7 +73,6 @@ except FileNotFoundError:
         pickle.dump(embedding_cache, embedding_cache_file)
         print('successfully dumped embeddings to cache')
 
-
 '''
 HELPER FUNCTIONS
 '''
@@ -267,6 +266,9 @@ app.config.update(
     TESTING=True,
     SECRET_KEY='its-a-secret'
 )
+host_ip = socket.gethostbyname(socket.gethostname())
+if __name__ == '__main__':
+    app.run(host=host_ip, port=5000, debug=True)
 
 # set up database connection for log
 db_name = 'log.db'
@@ -364,6 +366,7 @@ def process():
     # check if command is in the dictionary keys; if not, match via embedding
     cmd_match = True
     if lcommand not in list(cm_dict.keys()):
+        print('Command not in dictionary, matching via embedding...')
         cmd_embed = get_embedding(lcommand)
         sims = [cosine_similarity(cmd_embed, x) for x in embedding_cache]
         ind = np.argmax(sims)
@@ -501,6 +504,3 @@ def delete_record():
     db.session.commit()
     print('Successfully deleted record', id)
     return jsonify(id=id)
-
-if __name__ == '__main__':
-    app.run(debug=True)
