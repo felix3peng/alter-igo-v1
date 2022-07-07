@@ -51,8 +51,10 @@ codex_context += s00 + '\n\n'
 '''
 EMBEDDINGS
 '''
+# function to test whether cache file exists, evaluate whether it's up to date, and generate/re-generate if necessary
 def test_cache():
     cache_path = 'embeddings_cache.pkl'
+    # check local directory first (in case running from /app)
     try:
         embedding_cache = pd.read_pickle(cache_path)
         print('cache file located, reading...')
@@ -67,12 +69,28 @@ def test_cache():
         else:
             print('successfully loaded cached embeddings')
     except FileNotFoundError:
-        print('cache file not found, creating new cache')
-        embedding_cache = get_embeddings(list(cm_dict.keys()),
-                                        engine="text-similarity-davinci-001")
-        with open(cache_path, "wb") as embedding_cache_file:
-            pickle.dump(embedding_cache, embedding_cache_file)
-            print('successfully dumped embeddings to cache')
+        # check if cache file exists in /app/ (in case running from parent directory)
+        try:
+            embedding_cache = pd.read_pickle(os.path.join('app', cache_path))
+            print('cache file located, reading...')
+            if len(embedding_cache) != len(cm_dict):
+                print('outdated cache file, re-calculating embeddings...')
+                # if cache doesn't have the right number of embeddings, re-run
+                embedding_cache = get_embeddings(list(cm_dict.keys()),
+                                                engine="text-similarity-davinci-001")
+                with open(cache_path, "wb") as embedding_cache_file:
+                    pickle.dump(embedding_cache, embedding_cache_file)
+                    print('successfully dumped embeddings to cache')
+            else:
+                print('successfully loaded cached embeddings')
+        # if cache file still not found, generate new cache file
+        except FileNotFoundError:
+            print('cache file not found, creating new cache')
+            embedding_cache = get_embeddings(list(cm_dict.keys()),
+                                            engine="text-similarity-davinci-001")
+            with open(cache_path, "wb") as embedding_cache_file:
+                pickle.dump(embedding_cache, embedding_cache_file)
+                print('successfully dumped embeddings to cache')
     return embedding_cache
 
 '''
@@ -91,7 +109,7 @@ numtables = 0
 numplots = 0
 
 
-# helper function for running code stored in dictionary
+# helper function for running code stored in dictionary (for normal commands)
 # passing on KeyErrors when re-running due to column drop errors
 error_msg = 'Sorry, something went wrong. Please check the code and edit as needed'
 def runcode(text, args=None):
@@ -176,7 +194,7 @@ def runcode(text, args=None):
         return [outputtype, output]
 
 
-# helper function for running raw code
+# helper function for running raw code (in case of user edit)
 def runcode_raw(code):
     global numtables, numplots, error_msg
     # turn off plotting and run function, try to grab fig and save in buffer
@@ -507,4 +525,4 @@ def delete_record():
     return jsonify(id=id)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host=socket.gethostbyname(user_id), port=5000, debug=True)
