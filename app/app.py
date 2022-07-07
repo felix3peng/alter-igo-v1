@@ -51,28 +51,29 @@ codex_context += s00 + '\n\n'
 '''
 EMBEDDINGS
 '''
-cache_path = 'embeddings_cache.pkl'
-try:
-    embedding_cache = pd.read_pickle(cache_path)
-    print('cache file located, reading...')
-    if len(embedding_cache) != len(cm_dict):
-        print('outdated cache file, re-calculating embeddings...')
-        # if cache doesn't have the right number of embeddings, re-run
+def test_cache():
+    cache_path = 'embeddings_cache.pkl'
+    try:
+        embedding_cache = pd.read_pickle(cache_path)
+        print('cache file located, reading...')
+        if len(embedding_cache) != len(cm_dict):
+            print('outdated cache file, re-calculating embeddings...')
+            # if cache doesn't have the right number of embeddings, re-run
+            embedding_cache = get_embeddings(list(cm_dict.keys()),
+                                            engine="text-similarity-davinci-001")
+            with open(cache_path, "wb") as embedding_cache_file:
+                pickle.dump(embedding_cache, embedding_cache_file)
+                print('successfully dumped embeddings to cache')
+        else:
+            print('successfully loaded cached embeddings')
+    except FileNotFoundError:
+        print('cache file not found, creating new cache')
         embedding_cache = get_embeddings(list(cm_dict.keys()),
-                                         engine="text-similarity-davinci-001")
+                                        engine="text-similarity-davinci-001")
         with open(cache_path, "wb") as embedding_cache_file:
             pickle.dump(embedding_cache, embedding_cache_file)
             print('successfully dumped embeddings to cache')
-    else:
-        print('successfully loaded cached embeddings')
-except FileNotFoundError:
-    print('cache file not found, creating new cache')
-    embedding_cache = get_embeddings(list(cm_dict.keys()),
-                                     engine="text-similarity-davinci-001")
-    with open(cache_path, "wb") as embedding_cache_file:
-        pickle.dump(embedding_cache, embedding_cache_file)
-        print('successfully dumped embeddings to cache')
-
+    return embedding_cache
 
 '''
 HELPER FUNCTIONS
@@ -273,6 +274,9 @@ db_name = 'log.db'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_name
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
+
+# check for embedding cache file and load if exists, generate otherwise
+embedding_cache = test_cache()
 
 # create a class for the log table in db
 class Log(db.Model):
