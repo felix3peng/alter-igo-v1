@@ -73,6 +73,13 @@ except FileNotFoundError:
         pickle.dump(embedding_cache, embedding_cache_file)
         print('successfully dumped embeddings to cache')
 
+# test openai API connection
+try:
+    response = openai.Completion.create(engine="text-similarity-davinci-001",
+                                        prompt="test")
+    print('successfully connected to OpenAI API')
+except:
+    print('failed to connect to OpenAI API')
 
 '''
 HELPER FUNCTIONS
@@ -364,6 +371,7 @@ def process():
     # check if command is in the dictionary keys; if not, match via embedding
     cmd_match = True
     if lcommand not in list(cm_dict.keys()):
+        print('Command not in dictionary, matching via embedding...')
         cmd_embed = get_embedding(lcommand)
         sims = [cosine_similarity(cmd_embed, x) for x in embedding_cache]
         ind = np.argmax(sims)
