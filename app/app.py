@@ -194,7 +194,7 @@ def runcode(text, args=None):
         return [outputtype, output]
 
 
-# helper function for running raw code (in case of user edit)
+# helper function for running raw code (in case of user edit or codex code)
 def runcode_raw(code):
     global numtables, numplots, error_msg
     # turn off plotting and run function, try to grab fig and save in buffer
@@ -348,6 +348,35 @@ def home():
 def process():
     global codex_context
     command = request.args.get('command')
+    # testing codex; defaulting to openai codex for generating and running code
+    codex_context += '# ' + command + '\n'
+    # call openai api using code-davinci-002 to generate code from the command
+    response = openai.Completion.create(
+        model="code-davinci-002",
+        prompt=codex_context,
+        temperature=0.13,
+        max_tokens=128,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0,
+        stop=["#"]
+        )
+    codeblock = response['choices'][0]['text']
+    # strip leading whiteline if included
+    if codeblock[:1] == '\n':
+        codeblock = codeblock[1:]
+    codex_context += codeblock
+    print(codeblock)
+    [outputtype, output] = runcode_raw(codeblock)
+    outputs = [outputtype, command, codeblock, output]
+
+    # commit results to db and get id of corresponding entry
+    newest_id = log_commands(outputs)
+    # append id to outputs
+    outputs.append(newest_id)
+
+    return jsonify(outputs=outputs)
+    '''
     extra_args = []
 
     # check for any feature names
@@ -382,8 +411,8 @@ def process():
     # parse single-number parameters (e.g. number of trees)
     elif len(num_params) == 1:
         extra_args.extend(num_params)
-
-    # check if command is in the dictionary keys; if not, match via embedding
+    '''
+    '''
     cmd_match = True
     if lcommand not in list(cm_dict.keys()):
         cmd_embed = get_embedding(lcommand)
@@ -406,7 +435,7 @@ def process():
         cmd = command.lower()
         base_cmd = cm_dict[cmd]
         code = cc_dict[base_cmd]
-
+    
     # supplement cmd with parameters (if applicable) and pass to runcode
     if cmd_match == True:
         argtuple = tuple(extra_args)
@@ -445,13 +474,7 @@ def process():
         print(codeblock)
         [outputtype, output] = runcode(codeblock)
         outputs = [outputtype, command, codeblock, output]
-    
-    # commit results to db and get id of corresponding entry
-    newest_id = log_commands(outputs)
-    # append id to outputs
-    outputs.append(newest_id)
-
-    return jsonify(outputs=outputs)
+    '''
 
 
 # create a function to process positive feedback
