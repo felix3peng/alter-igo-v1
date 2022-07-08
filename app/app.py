@@ -296,6 +296,9 @@ db = SQLAlchemy(app)
 
 # check for embedding cache file and load if exists, generate otherwise
 embedding_cache = test_cache()
+codex_filename = 'codex_script_' + re.sub('\.[0-9]+', '', str(datetime.now()).replace(' ', '_')) + '.txt'
+with open(os.path.join('codex_logs', codex_filename), 'w') as f:
+    f.write(codex_context)
 
 # create a class for the log table in db
 class Log(db.Model):
@@ -333,6 +336,7 @@ class Code_Edits(db.Model):
         self.edited_code = edited_code
         self.orig_ref = orig_ref
 
+
 # base route to display main html body
 @app.route('/', methods=["GET", "POST"])
 def home():
@@ -349,8 +353,8 @@ def home():
 def process():
     global codex_context
     command = request.args.get('command')
-    # testing codex; defaulting to openai codex for generating and running code
-    codex_context += '# ' + command.replace('\n', '\n# ') + '\n'
+    codex_context += '# ' + command.strip().replace('\n', '\n# ') + '\n'
+
     # call openai api using code-davinci-002 to generate code from the command
     response = openai.Completion.create(
         model="code-davinci-002",
@@ -363,16 +367,20 @@ def process():
         stop=["#"]
         )
     codeblock = response['choices'][0]['text']
-    # strip leading whiteline if included
-    if codeblock[:1] == '\n':
-        codeblock = codeblock[1:]
-    codex_context += codeblock
+
+    # strip leading and trailing whitespaces if included
+    codex_context += codeblock.strip() + '\n'
     print(codeblock)
     [outputtype, output] = runcode_raw(codeblock)
     outputs = [outputtype, command, codeblock, output]
 
+    # write updated codex_context to file
+    with open(os.path.join('codex_logs', codex_filename), 'w') as f:
+        f.write(codex_context)
+    
     # commit results to db and get id of corresponding entry
     newest_id = log_commands(outputs)
+
     # append id to outputs
     outputs.append(newest_id)
 
@@ -444,10 +452,14 @@ def delete_record():
     code_start = codex_context.find(codeblock)
     code_end = code_start + len(codeblock)
     codex_context = (codex_context[:code_start] + codex_context[code_end:]).rstrip('\n') + '\n\n'
+    with open(os.path.join('codex_logs', codex_filename), 'w') as f:
+        f.write(codex_context)
     db.session.delete(record)
     db.session.commit()
     print('Successfully deleted record', id)
     return jsonify(id=id)
 
+
+# start flask app
 if __name__ == '__main__':
     app.run(host=socket.gethostbyname(user_id), port=5000, debug=True)
