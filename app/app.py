@@ -195,6 +195,7 @@ def runcode(text, args=None):
 
 
 # helper function for running raw code (in case of user edit or codex code)
+exec(s00, ldict)
 def runcode_raw(code):
     global numtables, numplots, error_msg
     # turn off plotting and run function, try to grab fig and save in buffer
@@ -349,13 +350,13 @@ def process():
     global codex_context
     command = request.args.get('command')
     # testing codex; defaulting to openai codex for generating and running code
-    codex_context += '# ' + command + '\n'
+    codex_context += '# ' + command.replace('\n', '\n# ') + '\n'
     # call openai api using code-davinci-002 to generate code from the command
     response = openai.Completion.create(
         model="code-davinci-002",
         prompt=codex_context,
         temperature=0.13,
-        max_tokens=128,
+        max_tokens=1024,
         top_p=1,
         frequency_penalty=0,
         presence_penalty=0,
@@ -376,105 +377,6 @@ def process():
     outputs.append(newest_id)
 
     return jsonify(outputs=outputs)
-    '''
-    extra_args = []
-
-    # check for any feature names
-    feat_params = [a.strip() for a in command.split() if a.isupper()]
-    # strip commas and quotes from feature names
-    feat_params = [a.replace(',', '') for a in feat_params]
-    feat_params = [a.replace('"', '') for a in feat_params]
-    feat_params = [a.replace("'", '') for a in feat_params]
-
-    # set up list of all caps names that should be ignored
-    restricted_allcaps = ['X', 'Y', 'TARGET', 'TRAIN', 'TEST', 'LOG', 'HCP', 'DEA', 'MAE', 'RMSE', 'TRx', 'NBRx']
-    # check if any elements of restricted_allcaps are in feat_params and remove them
-    for feat in feat_params:
-        if feat in restricted_allcaps:
-            feat_params.remove(feat)
-    
-    # if there are any feature names, then add them to extra_args
-    if len(feat_params) > 0:
-        extra_args.extend(feat_params)
-
-    # turn to lowercase for uniformity
-    lcommand = command.lower()
-
-    # parse command for any numbers, ignoring numbers adjacent to letters (e.g. R2)
-    num_params = re.findall(r'[\s-]*(\d+)[\s-]*', lcommand)
-    # parse train-test ratio
-    if len(num_params) > 1:
-        nums = [float(n) for n in num_params]
-        nums = [n/100 for n in nums if n > 1.0]
-        nums = [str(round(n, 2)) for n in nums]
-        extra_args.extend(nums)
-    # parse single-number parameters (e.g. number of trees)
-    elif len(num_params) == 1:
-        extra_args.extend(num_params)
-    '''
-    '''
-    cmd_match = True
-    if lcommand not in list(cm_dict.keys()):
-        cmd_embed = get_embedding(lcommand)
-        sims = [cosine_similarity(cmd_embed, x) for x in embedding_cache]
-        ind = np.argmax(sims)
-        # for debugging; print out command matching schema
-        print('\n\nEntered: ', command)
-        print('Best match similarity: ', np.max(sims))
-        print('Best match command: ', list(cm_dict.keys())[ind])
-        # set cmd_match flag to False if best similarity is 0.80 or less
-        if np.max(sims) <= 0.90:
-            cmd_match = False
-            print('Best match rejected, calling Codex API...\n')
-        else:
-            cmd = list(cm_dict.keys())[ind]
-            base_cmd = cm_dict[cmd]
-            code = cc_dict[base_cmd]
-            print('Best match accepted\n')
-    else:
-        cmd = command.lower()
-        base_cmd = cm_dict[cmd]
-        code = cc_dict[base_cmd]
-    
-    # supplement cmd with parameters (if applicable) and pass to runcode
-    if cmd_match == True:
-        argtuple = tuple(extra_args)
-        if len(argtuple) == 1:
-            codeblock = code.format(argtuple[0])
-        else:
-            codeblock = code.format(*argtuple)
-        print(codeblock, '\n')
-        codex_context += '# ' + command.replace('\n', '\n# ') + '\n\n'
-        codex_context += codeblock + '\n\n'
-        if len(argtuple) > 0:
-            [outputtype, output] = runcode(base_cmd, argtuple)
-        else:
-            [outputtype, output] = runcode(base_cmd)
-        outputs = [outputtype, command, codeblock, output]
-    elif cmd_match == False:
-        # call OpenAI codex API to get codeblock
-        print('match failed - calling Codex API')
-        codex_context += '# ' + command + '\n'
-        # call openai api using code-davinci-002 to generate code from the command
-        response = openai.Completion.create(
-            model="code-davinci-002",
-            prompt=codex_context,
-            temperature=0.13,
-            max_tokens=128,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
-            stop=["#"]
-            )
-        codeblock = response['choices'][0]['text']
-        # strip leading whiteline if included
-        if codeblock[:1] == '\n':
-            codeblock = codeblock[1:]
-        codex_context += codeblock
-        print(codeblock)
-        [outputtype, output] = runcode(codeblock)
-        outputs = [outputtype, command, codeblock, output]
-    '''
 
 
 # create a function to process positive feedback
