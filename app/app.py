@@ -286,9 +286,6 @@ app.config.update(
     TESTING=True,
     SECRET_KEY='its-a-secret'
 )
-host_ip = socket.gethostbyname(socket.gethostname())
-if __name__ == '__main__':
-    app.run(host=host_ip, port=5000, debug=True)
 
 # set up database connection for log
 db_name = 'log.db'
