@@ -7,3 +7,4 @@ instance/
 TIF_FIX_v0.1.txt
 Dockerfile
 .dockerignore
+codex_script*

@@ -296,9 +296,6 @@ db = SQLAlchemy(app)
 
 # check for embedding cache file and load if exists, generate otherwise
 embedding_cache = test_cache()
-codex_filename = 'codex_script_' + re.sub('\.[0-9]+', '', str(datetime.now()).replace(' ', '_')) + '.txt'
-with open(os.path.join('codex_logs', codex_filename), 'w') as f:
-    f.write(codex_context)
 
 # create a class for the log table in db
 class Log(db.Model):
@@ -375,7 +372,7 @@ def process():
     outputs = [outputtype, command, codeblock, output]
 
     # write updated codex_context to file
-    with open(os.path.join('codex_logs', codex_filename), 'w') as f:
+    with open(codex_filename, 'w') as f:
         f.write(codex_context)
     
     # commit results to db and get id of corresponding entry
@@ -452,7 +449,7 @@ def delete_record():
     code_start = codex_context.find(codeblock)
     code_end = code_start + len(codeblock)
     codex_context = (codex_context[:code_start] + codex_context[code_end:]).rstrip('\n') + '\n\n'
-    with open(os.path.join('codex_logs', codex_filename), 'w') as f:
+    with open(codex_filename, 'w') as f:
         f.write(codex_context)
     db.session.delete(record)
     db.session.commit()
@@ -462,4 +459,16 @@ def delete_record():
 
 # start flask app
 if __name__ == '__main__':
+    # create filename for storing codex prompt
+    codex_filename = 'codex_script_' + re.sub('\.[0-9]+', '', str(datetime.now()).replace(' ', '_').replace(':', '_')) + '.txt'
+    # check if working directory is currently in app folder and set up filename accordingly
+    if os.path.basename(os.getcwd()) == 'app':
+        codex_filename = os.path.join('codex_logs', codex_filename)
+    else:
+        codex_filename = os.path.join('app', 'codex_logs', codex_filename)
+
+    # create file and write initial codex prompt
+    with open(codex_filename, 'w+') as f:
+        f.write(codex_context)
+
     app.run(host=socket.gethostbyname(user_id), port=5000, debug=True)
