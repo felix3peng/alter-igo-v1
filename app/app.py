@@ -2,7 +2,7 @@
 def warn(*args, **kwargs):
     pass
 import warnings
-
+import time
 from click import command
 warnings.warn = warn
 import os
@@ -349,10 +349,14 @@ def home():
 @app.route('/process')
 def process():
     global codex_context
+    print('Received command!')
     command = request.args.get('command')
+    print('# ' + command.strip().replace('\n', '\n# '))
     codex_context += '# ' + command.strip().replace('\n', '\n# ') + '\n'
 
     # call openai api using code-davinci-002 to generate code from the command
+    print('Calling codex API...')
+    start = time.time()
     response = openai.Completion.create(
         model="code-davinci-002",
         prompt=codex_context,
@@ -363,19 +367,24 @@ def process():
         presence_penalty=0,
         stop=["#"]
         )
-    codeblock = response['choices'][0]['text']
+    end = time.time()
+    print('Received response from codex API in {0:.2f} seconds.'.format(end - start))
+    codeblock = response['choices'][0]['text'].strip()
 
     # strip leading and trailing whitespaces if included
-    codex_context += codeblock.strip() + '\n'
+    codex_context += codeblock + '\n'
+    print('Received code:\n')
     print(codeblock)
     [outputtype, output] = runcode_raw(codeblock)
     outputs = [outputtype, command, codeblock, output]
 
     # write updated codex_context to file
+    print('Updating codex prompt...')
     with open(codex_filename, 'w') as f:
         f.write(codex_context)
     
     # commit results to db and get id of corresponding entry
+    print('Logging results to database...')
     newest_id = log_commands(outputs)
 
     # append id to outputs
