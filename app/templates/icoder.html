@@ -54,6 +54,10 @@
                     } else if (data.outputs[3] !== "") {
                         $(outputdiv).append('<pre><code class="language-plaintext">'+data.outputs[3]+'</code></pre>');
                         $('#' + wrapper_id).append(outputdiv);
+                    } else {
+                        $(outputdiv).append('<p>No output (I\'m hidden by default)</p>');
+                        $('#' + wrapper_id).append(outputdiv);
+                        $(outputdiv).hide();
                     }
                     if (data.outputs[2] == '') {
                         alert("Sorry, I couldn't understand your request.");
