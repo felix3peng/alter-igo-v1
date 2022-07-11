@@ -11,7 +11,7 @@ import pandas as pd
 pd.set_option('display.max_columns', None)
 pd.set_option('display.expand_frame_repr', False)
 pd.set_option('display.max_rows', None)
-pd.set_option('display.max)width', None)
+pd.set_option('display.max_width', None)
 from flask import Flask, Blueprint, flash, g, redirect, render_template
 from flask import request, session, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
