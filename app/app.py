@@ -173,6 +173,8 @@ def runcode(text, args=None):
         sys.stdout = old_stdout
     
         # further parsing to determine if plain string or dataframe
+        if bool(re.search('Index', output)):
+            outputtype = 'string'
         if bool(re.search(r'[\s]{3,}', output)):
             outputtype = 'dataframe'
             headers = re.split('\s+', output.partition('\n')[0])[1:]
@@ -228,7 +230,9 @@ def runcode_raw(code):
         sys.stdout = old_stdout
 
         # further parsing to determine if plain string or dataframe
-        if bool(re.search(r'[\s]{3,}', output)):
+        if bool(re.search('Index', output)):
+            outputtype = 'string'
+        elif bool(re.search(r'[\s]{3,}', output)):
             outputtype = 'dataframe'
             headers = re.split('\s+', output.partition('\n')[0])[1:]
             temp_df = pd.read_csv(StringIO(output.split('\n', 1)[1]), delimiter=r"\s{2,}", names=headers)
