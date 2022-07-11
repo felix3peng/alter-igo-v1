@@ -171,6 +171,36 @@ def runcode(text, args=None):
                 print(error_msg)
         output = new_stdout.getvalue()
         sys.stdout = old_stdout
+    
+        # check if output was empty and use eval on last line if so
+        if output == '':
+            new_stdout = StringIO()
+            sys.stdout = new_stdout
+            lastline = cc_dict[text].splitlines()[-1]
+            if args is None:
+                try:
+                    eval(lastline, ldict)
+                except KeyError:
+                    pass
+                except:
+                    print(error_msg)
+            elif len(args) == 1:
+                try:
+                    eval(lastline.format(args[0]), ldict)
+                except KeyError:
+                    pass
+                except:
+                    print(error_msg)
+            else:
+                try:
+                    eval(lastline.format(*args), ldict)
+                except KeyError:
+                    pass
+                except:
+                    print(error_msg)
+            output = new_stdout.getvalue()
+            sys.stdout = old_stdout
+        
         # further parsing to determine if plain string or dataframe
         if bool(re.search(r'[\s]{3,}', output)):
             outputtype = 'dataframe'
@@ -225,6 +255,21 @@ def runcode_raw(code):
             print(error_msg)
         output = new_stdout.getvalue()
         sys.stdout = old_stdout
+
+         # check if output was empty and use eval on last line if so
+        if output == '':
+            new_stdout = StringIO()
+            sys.stdout = new_stdout
+            lastline = code.splitlines()[-1]
+            try:
+                eval(lastline, ldict)
+            except KeyError:
+                pass
+            except:
+                    print(error_msg)
+            output = new_stdout.getvalue()
+            sys.stdout = old_stdout
+
         # further parsing to determine if plain string or dataframe
         if bool(re.search(r'[\s]{3,}', output)):
             outputtype = 'dataframe'

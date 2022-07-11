@@ -76,6 +76,9 @@
         $(document).ready(function(){
             var i=0;
             $('#clear').click(function(){
+                i=1;
+                nt=0;
+                np=0;
                 $.getJSON($SCRIPT_ROOT + '/clear', {
                     value: 1,
                 }, function(data){
