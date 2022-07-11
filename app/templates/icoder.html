@@ -71,14 +71,18 @@
             });
         });
     </script>
-    <!--Script for clearing content-->
+    <!--Script for clearing content and variables-->
     <script type=text/javascript>
         $(document).ready(function(){
             var i=0;
             $('#clear').click(function(){
-                $('.content').empty();
-                hljs.highlightAll();
-                document.getElementById("cmd").value = "";
+                $.getJSON($SCRIPT_ROOT + '/clear', {
+                    value: 1,
+                }, function(data){
+                    $('.content').empty();
+                    hljs.highlightAll();
+                    document.getElementById("cmd").value = "";
+                });
             });
         });
     </script>
@@ -381,7 +385,7 @@
                     <button class="btn btn-primary" id="submit" type="button" title="Submit query (Ctrl+Enter)">
                         <i class="bx bx-right-arrow-alt" id="submit-icon"></i>
                     </button>
-                    <button class="btn" id="clear" type="button" title="Clear display">
+                    <button class="btn" id="clear" type="button" title="Clear display & remove variables">
                         <i class="bx bx-refresh" id="refresh-icon"></i>
                     </button>
                 </div>

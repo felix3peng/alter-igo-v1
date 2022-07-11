@@ -354,14 +354,21 @@ def process():
     print('# ' + command.strip().replace('\n', '\n# '))
     codex_context += '\n# ' + command.strip().replace('\n', '\n# ') + '\n'
 
+    # check length of codex_context and trim if necessary
+    # get positions of each command within the string, clear all but the most recent
+    if len(codex_context) > 2000:
+        print('Codex prompt is getting too long! Trimming...')
+        command_positions = [(m.start(), m.end()) for m in re.finditer('#.+', codex_context)]
+        codex_context = codex_context[command_positions[-1][0]:]
+
     # call openai api using code-davinci-002 to generate code from the command
     print('Calling codex API...')
     start = time.time()
     response = openai.Completion.create(
         model="code-davinci-002",
         prompt=codex_context,
-        temperature=0.13,
-        max_tokens=1024,
+        temperature=0.05,
+        max_tokens=4000,
         top_p=1,
         frequency_penalty=0,
         presence_penalty=0,
@@ -391,6 +398,17 @@ def process():
     outputs.append(newest_id)
 
     return jsonify(outputs=outputs)
+
+
+# create a function to clear local dictionary and reset codex_context when refresh is pressed
+@app.route('/clear')
+def clear():
+    global codex_context, ldict
+    codex_context = ''
+    codex_context += '# import standard libraries\n'
+    codex_context += s00
+    ldict = {}
+    return jsonify(outputs=[])
 
 
 # create a function to process positive feedback
@@ -429,6 +447,8 @@ def negative_feedback():
 @app.route('/edit')
 def edit():
     print('Received edit')
+
+    # edit database entry
     record_id = request.args.get('ref')
     newcode = request.args.get('new_code')
     command, oldcode = get_log(record_id)
@@ -439,6 +459,9 @@ def edit():
     orig_record = Log.query.filter_by(id=record_id).first()
     orig_record.edit_ref = edit_record_id
     db.session.commit()
+
+    # edit codex script
+    codex_context = codex_context.replace(oldcode, newcode)
     print('Successfully processed and recorded edit')
     return jsonify(outputs=outputs) 
 
