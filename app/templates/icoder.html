@@ -212,6 +212,9 @@
             var editableText = document.createElement("textarea");
             var editButton = document.getElementById('edit'+code_div_id);
             var confirmButton = document.createElement("button");
+            if (targetdiv.classList == "collapse") {
+                targetdiv.classList = "collapse in";
+            }
             editableText.classList = "editbox";
             editableText.id = "editcode"+code_div_id;
             editableText.style.height = $(targetdiv).css("height");
