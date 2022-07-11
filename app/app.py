@@ -45,8 +45,8 @@ global codex_context, error_msg
 
 # string containing all commands and code to be fed to codex API
 codex_context = ''
-codex_context += '# import standard libraries\n\n'
-codex_context += s00 + '\n\n'
+codex_context += '# import standard libraries\n'
+codex_context += s00
 
 '''
 EMBEDDINGS
@@ -352,7 +352,7 @@ def process():
     print('Received command!')
     command = request.args.get('command')
     print('# ' + command.strip().replace('\n', '\n# '))
-    codex_context += '# ' + command.strip().replace('\n', '\n# ') + '\n'
+    codex_context += '\n# ' + command.strip().replace('\n', '\n# ') + '\n'
 
     # call openai api using code-davinci-002 to generate code from the command
     print('Calling codex API...')
@@ -449,19 +449,21 @@ def delete_record():
     global codex_context
     id = request.args.get('db_id')
     print('Received delete request for record', id)
+    
+    # remove corresponding record from database
     record = Log.query.filter_by(id=id).first()
-    command = '# ' + record.command.replace('\n', '\n# ') + '\n\n'
-    codeblock = record.codeblock + '\n'
-    cmd_start = codex_context.find(command)
-    cmd_end = cmd_start + len(command)
-    codex_context = codex_context[:cmd_start] + codex_context[cmd_end:]
-    code_start = codex_context.find(codeblock)
-    code_end = code_start + len(codeblock)
-    codex_context = (codex_context[:code_start] + codex_context[code_end:]).rstrip('\n') + '\n\n'
-    with open(codex_filename, 'w') as f:
-        f.write(codex_context)
     db.session.delete(record)
     db.session.commit()
+
+    # remove corresponding entry from codex prompter
+    command = '# ' + record.command.strip().replace('\n', '\n# ') + '\n'
+    codeblock = record.codeblock + '\n'
+    codex_context = codex_context.replace(command, '')
+    codex_context = codex_context.replace(codeblock, '')
+
+    # write new codex prompt to file
+    with open(codex_filename, 'w') as f:
+        f.write(codex_context.strip())
     print('Successfully deleted record', id)
     return jsonify(id=id)
 
@@ -478,6 +480,6 @@ if __name__ == '__main__':
 
     # create file and write initial codex prompt
     with open(codex_filename, 'w+') as f:
-        f.write(codex_context)
+        f.write(codex_context.strip())
 
     app.run(host=socket.gethostbyname(user_id), port=5000, debug=True)
