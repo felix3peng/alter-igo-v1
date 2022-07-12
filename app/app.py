@@ -488,6 +488,7 @@ def negative_feedback():
 # create a function to process code edits
 @app.route('/edit')
 def edit():
+    global codex_context
     print('Received edit')
 
     # edit database entry
