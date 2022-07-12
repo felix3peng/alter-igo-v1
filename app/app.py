@@ -383,18 +383,46 @@ def process():
     end = time.time()
     print('Received response from codex API in {0:.2f} seconds.'.format(end - start))
     codeblock = response['choices'][0]['text'].strip()
+    print('Received code:\n')
+    print(codeblock)
+
+    # the response may be empty - we'll try one more time if so, but give up otherwise.
+    if codeblock == '':
+        print('No code generated! Adding a newline and trying again...')
+        print('Calling codex API...')
+        codex_context += '\n'
+        start = time.time()
+        response = openai.Completion.create(
+            model="code-davinci-002",
+            prompt=codex_context,
+            temperature=0.05,
+            max_tokens=4000,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0,
+            stop=["#"]
+            )
+        end = time.time()
+        print('Received response from codex API in {0:.2f} seconds.'.format(end - start))
+        codeblock = response['choices'][0]['text'].strip()
+        print('Received code:\n')
+        print(codeblock)
 
     # if the last line is a declaration, wrap it in a print statement
-    lastline = codeblock.splitlines()[-1]
-    if ('=' not in lastline) and ('return' not in lastline) and ('print' not in lastline) and ('.fit' not in lastline):
-        lastline_print = 'print(' + lastline + ')'
-        codeblock = codeblock.replace(lastline, lastline_print)
-        print('Caught last line as a declaration, wrapping in print statement...')
+    # fails if the codeblock is empty, wrap in try-except to avoid erroring out
+    try:
+        lastline = codeblock.splitlines()[-1]
+        if ('=' not in lastline) and ('return' not in lastline) and ('print' not in lastline) and ('.fit' not in lastline):
+            lastline_print = 'print(' + lastline + ')'
+            codeblock = codeblock.replace(lastline, lastline_print)
+            print('Caught last line as a declaration, wrapping in print statement...')
+            print('Revised code:\n')
+            print(codeblock)
+    except IndexError:
+        pass
 
     # strip leading and trailing whitespaces if included
     codex_context += codeblock + '\n'
-    print('Received code:\n')
-    print(codeblock)
     [outputtype, output] = runcode_raw(codeblock)
     outputs = [outputtype, command, codeblock, output]
 
