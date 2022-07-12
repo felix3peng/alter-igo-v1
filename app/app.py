@@ -174,9 +174,8 @@ def runcode(text, args=None):
         sys.stdout = old_stdout
     
         # further parsing to determine if plain string or dataframe
-        if bool(re.search('Index', output)):
-            outputtype = 'string'
-        if bool(re.search(r'[\s]{3,}', output)):
+        # dataframe recognized as having >=3 whitespaces occurring and starting with a whitespace character
+        if bool(re.search(r'[\s]{3,}', output)) and (output[0] == '\s'):
             outputtype = 'dataframe'
             headers = re.split('\s+', output.partition('\n')[0])[1:]
             temp_df = pd.read_csv(StringIO(output.split('\n', 1)[1]), delimiter=r"\s{2,}", names=headers)
@@ -385,6 +384,13 @@ def process():
     print('Received response from codex API in {0:.2f} seconds.'.format(end - start))
     codeblock = response['choices'][0]['text'].strip()
 
+    # if the last line is a declaration, wrap it in a print statement
+    lastline = codeblock.splitlines()[-1]
+    if ('=' not in lastline) and ('return' not in lastline) and ('print' not in lastline) and ('.fit' not in lastline):
+        lastline_print = 'print(' + lastline + ')'
+        codeblock = codeblock.replace(lastline, lastline_print)
+        print('Caught last line as a declaration, wrapping in print statement...')
+
     # strip leading and trailing whitespaces if included
     codex_context += codeblock + '\n'
     print('Received code:\n')
@@ -415,6 +421,7 @@ def clear():
     codex_context += '# import standard libraries\n'
     codex_context += s00
     ldict = {}
+    exec(codex_context, ldict)
     return jsonify(outputs=[])
 
 
@@ -507,9 +514,10 @@ if __name__ == '__main__':
         codex_filename = os.path.join('codex_logs', codex_filename)
     else:
         codex_filename = os.path.join('app', 'codex_logs', codex_filename)
+    
+    app.run(host=socket.gethostbyname(user_id), port=5000, debug=True)
 
     # create file and write initial codex prompt
     with open(codex_filename, 'w+') as f:
         f.write(codex_context.strip())
 
-    app.run(host=socket.gethostbyname(user_id), port=5000, debug=True)
