@@ -313,6 +313,10 @@
                 } else if (data.outputs[1] !== "") {
                     $(newoutput).append('<pre><code class="language-plaintext">'+data.outputs[1]+'</code></pre>');
                     $(outputdiv).replaceWith(newoutput);
+                } else {
+                    $(newoutput).append('<p>No output (I\'m hidden by default)</p>');
+                    $(newoutput).hide();
+                    $(outputdiv).replaceWith(newoutput);
                 }
                 hljs.highlightAll();
             })

@@ -2,11 +2,20 @@
 def warn(*args, **kwargs):
     pass
 import warnings
-import time
-from click import command
 warnings.warn = warn
+import time
 import os
+import base64
+import sys
+import re
+import pickle
+import socket
+import openai
+openai.api_key = os.getenv('OPENAI_API_KEY')
+import matplotlib
+matplotlib.use('Agg')
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 pd.set_option('display.max_columns', None)
 pd.set_option('display.expand_frame_repr', False)
@@ -15,39 +24,23 @@ pd.set_option('display.width', None)
 from flask import Flask, Blueprint, flash, g, redirect, render_template
 from flask import request, session, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.sql import text
-import sqlite3
-import inspect
-from itertools import groupby
-from subprocess import Popen, PIPE
 from io import StringIO, BytesIO
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-import matplotlib_venn as v
-import base64
-import sys
-import re
 from datetime import datetime
 from PIL import Image
-import openai
-openai.api_key = os.getenv('OPENAI_API_KEY')
-from openai.embeddings_utils import get_embeddings, distances_from_embeddings
-from openai.embeddings_utils import get_embedding, cosine_similarity
-import pickle
-import shap
-import socket
-from resources import cc_dict, cm_dict, s00
+from openai.embeddings_utils import get_embeddings
+
+from resources import s00
 
 # global declarations
 global numtables, numplots
 global codex_context, error_msg
+global use_embeddings
+use_embeddings = False
 
 # string containing all commands and code to be fed to codex API
 codex_context = ''
 codex_context += '# import standard libraries\n'
-codex_context += s00
+codex_context += s00 + '\n'
 
 '''
 EMBEDDINGS
@@ -56,42 +49,43 @@ EMBEDDINGS
 def test_cache():
     cache_path = 'embeddings_cache.pkl'
     # check local directory first (in case running from /app)
+    print('\nChecking for cache file...')
     try:
         embedding_cache = pd.read_pickle(cache_path)
-        print('cache file located, reading...')
+        print('Successfully located an embeddings cache file, reading...')
         if len(embedding_cache) != len(cm_dict):
-            print('outdated cache file, re-calculating embeddings...')
+            print('Cache file is outdated! Re-calculating embeddings...')
             # if cache doesn't have the right number of embeddings, re-run
             embedding_cache = get_embeddings(list(cm_dict.keys()),
                                             engine="text-similarity-davinci-001")
             with open(cache_path, "wb") as embedding_cache_file:
                 pickle.dump(embedding_cache, embedding_cache_file)
-                print('successfully dumped embeddings to cache')
+                print('Successfully generated embeddings and dumped to cache file\n')
         else:
-            print('successfully loaded cached embeddings')
+            print('Successfully loaded cached embeddings\n')
     except FileNotFoundError:
         # check if cache file exists in /app/ (in case running from parent directory)
         try:
             embedding_cache = pd.read_pickle(os.path.join('app', cache_path))
-            print('cache file located, reading...')
+            print('Successfully located an embeddings cache file, reading...')
             if len(embedding_cache) != len(cm_dict):
-                print('outdated cache file, re-calculating embeddings...')
+                print('Cache file is outdated! Re-calculating embeddings...')
                 # if cache doesn't have the right number of embeddings, re-run
                 embedding_cache = get_embeddings(list(cm_dict.keys()),
                                                 engine="text-similarity-davinci-001")
                 with open(cache_path, "wb") as embedding_cache_file:
                     pickle.dump(embedding_cache, embedding_cache_file)
-                    print('successfully dumped embeddings to cache')
+                    print('Successfully generated embeddings and dumped to cache file\n')
             else:
-                print('successfully loaded cached embeddings')
+                print('Successfully loaded cached embeddings\n')
         # if cache file still not found, generate new cache file
         except FileNotFoundError:
-            print('cache file not found, creating new cache')
+            print('Did not find existing embeddings cache file. Creating embeddings and new cache...')
             embedding_cache = get_embeddings(list(cm_dict.keys()),
                                             engine="text-similarity-davinci-001")
             with open(cache_path, "wb") as embedding_cache_file:
                 pickle.dump(embedding_cache, embedding_cache_file)
-                print('successfully dumped embeddings to cache')
+                print('Successfully generated embeddings and dumped to cache file\n')
     return embedding_cache
 
 '''
@@ -284,6 +278,23 @@ def get_log(id):
     return cmd, codeblock
 
 
+# submit codex API call
+def codex_call(prompt):
+    start = time.time()
+    response = openai.Completion.create(
+        model="code-davinci-002",
+        prompt=codex_context,
+        temperature=0.01,
+        max_tokens=4000,
+        frequency_penalty=1,
+        presence_penalty=1,
+        stop=["#", "'''", '"""']
+        )
+    end = time.time()
+    elapsed = end - start
+    return response['choices'][0]['text'], elapsed
+
+
 '''
 FLASK APPLICATION CODE & ROUTES
 '''
@@ -301,7 +312,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
 # check for embedding cache file and load if exists, generate otherwise
-embedding_cache = test_cache()
+# only need to run this if we are utilizing embeddings - disabled for openai-testing
+if use_embeddings == True:
+    embedding_cache = test_cache()
 
 # create a class for the log table in db
 class Log(db.Model):
@@ -351,6 +364,18 @@ def home():
     return render_template('icoder.html')
 
 
+# create a route for login via SSO thru ZS credentials
+@app.route('/login')
+def login():
+    pass
+
+
+# create a route for callback from SSO
+@app.route('/callback')
+def callback():
+    pass
+
+
 # create a function to read form inputs and process a set of outputs in json
 @app.route('/process')
 def process():
@@ -369,20 +394,9 @@ def process():
 
     # call openai api using code-davinci-002 to generate code from the command
     print('Calling codex API...')
-    start = time.time()
-    response = openai.Completion.create(
-        model="code-davinci-002",
-        prompt=codex_context,
-        temperature=0.05,
-        max_tokens=4000,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0,
-        stop=["#"]
-        )
-    end = time.time()
-    print('Received response from codex API in {0:.2f} seconds.'.format(end - start))
-    codeblock = response['choices'][0]['text'].strip()
+    response, elapsed = codex_call(codex_context)
+    print('Received response from codex API in {0:.2f} seconds.'.format(elapsed))
+    codeblock = response.strip()
     print('Received code:\n')
     print(codeblock)
 
@@ -391,22 +405,16 @@ def process():
         print('No code generated! Adding a newline and trying again...')
         print('Calling codex API...')
         codex_context += '\n'
-        start = time.time()
-        response = openai.Completion.create(
-            model="code-davinci-002",
-            prompt=codex_context,
-            temperature=0.05,
-            max_tokens=4000,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
-            stop=["#"]
-            )
-        end = time.time()
-        print('Received response from codex API in {0:.2f} seconds.'.format(end - start))
-        codeblock = response['choices'][0]['text'].strip()
+        response, elapsed = codex_call(codex_context)
+        print('Received response from codex API in {0:.2f} seconds.'.format(elapsed))
+        codeblock = response.strip()
         print('Received code:\n')
         print(codeblock)
+
+        # if the returned code is still empty, remove the newline that was added
+        if codeblock == '':
+            print('No code generated!')
+            codex_context = codex_context[:-1]
 
     # if the last line is a declaration, wrap it in a print statement
     # fails if the codeblock is empty, wrap in try-except to avoid erroring out
@@ -533,20 +541,19 @@ def delete_record():
     print('Successfully deleted record', id)
     return jsonify(id=id)
 
+# create filename for storing codex prompt
+codex_filename = 'codex_script_' + re.sub('\.[0-9]+', '', str(datetime.now()).replace(' ', '_').replace(':', '_')) + '.txt'
+# check if working directory is currently in app folder and set up filename accordingly
+if os.path.basename(os.getcwd()) == 'app':
+    codex_filename = os.path.join('codex_logs', codex_filename)
+else:
+    codex_filename = os.path.join('app', 'codex_logs', codex_filename)
 
 # start flask app
 if __name__ == '__main__':
-    # create filename for storing codex prompt
-    codex_filename = 'codex_script_' + re.sub('\.[0-9]+', '', str(datetime.now()).replace(' ', '_').replace(':', '_')) + '.txt'
-    # check if working directory is currently in app folder and set up filename accordingly
-    if os.path.basename(os.getcwd()) == 'app':
-        codex_filename = os.path.join('codex_logs', codex_filename)
-    else:
-        codex_filename = os.path.join('app', 'codex_logs', codex_filename)
-    
     app.run(host=socket.gethostbyname(user_id), port=5000, debug=True)
 
     # create file and write initial codex prompt
     with open(codex_filename, 'w+') as f:
-        f.write(codex_context.strip())
+        f.write(codex_context)
 
