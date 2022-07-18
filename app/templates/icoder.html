@@ -274,6 +274,7 @@
             var newdiv = document.createElement("div");
             var editButton = document.createElement("button");
             var editedcode = editbox.value;
+            var cancelButton = document.getElementById('cancel'+code_div_id);
             targetdiv.remove();
             newdiv.classList = "collapse in";
             newdiv.id = "code"+code_div_id;
@@ -289,6 +290,7 @@
             editButton.type = "button";
             editButton.setAttribute("onclick", "editcode("+code_div_id+")");
             confirmButton.replaceWith(editButton);
+            cancelButton.remove();
             editbox.replaceWith(newdiv);
             var record_id = editButton.previousSibling.id.replace(/[^0-9]/g,'');
             var outputdiv = newdiv.parentElement.nextSibling;

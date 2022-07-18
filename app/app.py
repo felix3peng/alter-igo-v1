@@ -29,13 +29,14 @@ from datetime import datetime
 from PIL import Image
 from openai.embeddings_utils import get_embeddings
 
-from resources import s00
+from resources import s00, cc_dict, cm_dict
 
 # global declarations
 global numtables, numplots
 global codex_context, error_msg
 global use_embeddings
 use_embeddings = False
+error_msg = 'Sorry, something went wrong. Please check the code and edit as needed.'
 
 # string containing all commands and code to be fed to codex API
 codex_context = ''
@@ -102,93 +103,6 @@ old_stdout = sys.stdout
 ldict = {}
 numtables = 0
 numplots = 0
-
-
-# helper function for running code stored in dictionary (for normal commands)
-# passing on KeyErrors when re-running due to column drop errors
-error_msg = 'Sorry, something went wrong. Please check the code and edit as needed'
-def runcode(text, args=None):
-    global numtables, numplots, error_msg
-    # turn off plotting and run function, try to grab fig and save in buffer
-    tldict = ldict.copy()
-    plt.ioff()
-    if args is None:
-        try:
-            exec(cc_dict[text], tldict)
-        except KeyError:
-            pass
-        except:
-            print(error_msg)
-    elif len(args) == 1:
-        try:
-            exec(cc_dict[text].format(args[0]), tldict)
-        except KeyError:
-            pass
-        except:
-            print(error_msg)
-    else:
-        try:
-            exec(cc_dict[text].format(*args), tldict)
-        except KeyError:
-            pass
-        except:
-            print(error_msg)
-    fig = plt.gcf()
-    buf = BytesIO()
-    fig.savefig(buf, format="png")
-    plt.close()
-    p = Image.open(buf)
-    x = np.array(p.getdata(), dtype=np.uint8).reshape(p.size[1], p.size[0], -1)
-    # if min and max colors are the same, it wasn't a plot - re-run as string
-    if np.min(x) == np.max(x):
-        new_stdout = StringIO()
-        sys.stdout = new_stdout
-        if args is None:
-            try:
-                exec(cc_dict[text], ldict)
-            except KeyError:
-                pass
-            except:
-                print(error_msg)
-        elif len(args) == 1:
-            try:
-                exec(cc_dict[text].format(args[0]), ldict)
-            except KeyError:
-                pass
-            except:
-                print(error_msg)
-        else:
-            try:
-                exec(cc_dict[text].format(*args), ldict)
-            except KeyError:
-                pass
-            except:
-                print(error_msg)
-        output = new_stdout.getvalue()
-        sys.stdout = old_stdout
-    
-        # further parsing to determine if plain string or dataframe
-        # dataframe recognized as having >=3 whitespaces occurring and starting with a whitespace character
-        if bool(re.search(r'[\s]{3,}', output)) and (output[0] == '\s'):
-            outputtype = 'dataframe'
-            headers = re.split('\s+', output.partition('\n')[0])[1:]
-            temp_df = pd.read_csv(StringIO(output.split('\n', 1)[1]), delimiter=r"\s{2,}", names=headers)
-            temp_df
-            if '[' in str(temp_df.index[-1]):
-                temp_df.drop(temp_df.tail(1).index, inplace=True)
-            output = temp_df.to_html(classes='table', table_id='table'+str(numtables), max_cols=500)
-            numtables += 1
-        else:
-            outputtype = 'string'
-        return [outputtype, output]
-    # if it was a plot, then output as HTML image from buffer
-    else:
-        data = base64.b64encode(buf.getbuffer()).decode("ascii")
-        output = "<img id='image{0}' src='data:image/png;base64,{1}'/>".format(numplots, data)
-        outputtype = 'image'
-        numplots += 1
-        ldict.update(tldict)
-        return [outputtype, output]
 
 
 # helper function for running raw code (in case of user edit or codex code)
@@ -411,10 +325,24 @@ def process():
         print('Received code:\n')
         print(codeblock)
 
-        # if the returned code is still empty, remove the newline that was added
+        # if the returned code is still empty, remove the newline that was added and terminate
         if codeblock == '':
             print('No code generated!')
             codex_context = codex_context[:-1]
+            outputs = ['string', command, '', 'No code generated!']
+            
+            # log results to database
+            print('Logging results to database...')
+            newest_id = log_commands(outputs)
+            
+            # update codex prompt log file
+            print('Updating codex prompt...')
+            with open(codex_filename, 'w') as f:
+                f.write(codex_context)
+            outputs.append(newest_id)
+
+            # pass results back to client
+            return jsonify(outputs=outputs)
 
     # if the last line is a declaration, wrap it in a print statement
     # fails if the codeblock is empty, wrap in try-except to avoid erroring out
