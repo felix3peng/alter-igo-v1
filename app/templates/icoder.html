@@ -230,8 +230,7 @@
             confirmButton.appendChild(icon);
             confirmButton.type = "button";
             confirmButton.setAttribute("onclick", "editconfirm("+code_div_id+")");
-            editableText.value = origcode;
-            $(targetdiv).hide(); 
+            editableText.value = origcode; 
             targetdiv.insertAdjacentElement("afterend", editableText);
             editButton.replaceWith(confirmButton);
             cancelButton = document.createElement("button");
@@ -243,6 +242,7 @@
             confirmButton.insertAdjacentElement("afterend", cancelButton);
             cancelButton.type = "button";
             cancelButton.setAttribute("onclick", "editcancel("+code_div_id+")");
+            $(targetdiv).hide();
             $(editableText).keydown(function(e) {
                 if(e.keyCode == 9) {
                     var start = this.selectionStart;
