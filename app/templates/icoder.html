@@ -217,10 +217,12 @@
             var confirmButton = document.createElement("button");
             if (targetdiv.classList == "collapse") {
                 targetdiv.previousSibling.click();
+                targetdiv.classList = "collapse in";
             }
+            let h = targetdiv.offsetHeight;
             editableText.classList = "editbox";
             editableText.id = "editcode"+code_div_id;
-            editableText.style.height = $(targetdiv).css("height");
+            editableText.style.height = h;
             editableText.style.width = "100%";
             editableText.value = origcode;
             confirmButton.classList = "confirm";
