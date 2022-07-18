@@ -219,7 +219,7 @@
                 targetdiv.previousSibling.click();
                 targetdiv.classList = "collapse in";
             }
-            let h = targetdiv.offsetHeight;
+            let h = targetdiv.scrollHeight;
             editableText.classList = "editbox";
             editableText.id = "editcode"+code_div_id;
             editableText.style.height = h;
