@@ -207,6 +207,7 @@ h2 {
 }
 
 .output {
+    display: block;
     margin-top: 5px;
     margin-left: 3rem;
     overflow-x: auto;
