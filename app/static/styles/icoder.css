@@ -203,6 +203,8 @@ h2 {
     white-space: pre-wrap;
     vertical-align: middle;
     display: inline-block;
+    padding-top: 1px;
+    padding-bottom: 1px;
 }
 
 .feedback-btns {
