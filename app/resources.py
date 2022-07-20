@@ -12,6 +12,7 @@ import matplotlib_venn as v
 import openai
 openai.api_key = os.getenv('OPENAI_API_KEY')
 import shap
+import seaborn as sns
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split'''

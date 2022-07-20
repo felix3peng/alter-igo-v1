@@ -295,16 +295,27 @@ def callback():
 def process():
     global codex_context
     print('Received command!')
-    command = request.args.get('command')
-    print('# ' + command.strip().replace('\n', '\n# '))
-    codex_context += '\n# ' + command.strip().replace('\n', '\n# ') + '\n'
+    command = request.args.get('command').strip()
+    # wrap multiline commands in quotes for block comments
+    if '\n' in command:
+        command = "'''\n" + command + "\n'''"
+    # prepend single line commands with # for line comments
+    else:
+        command = '# ' + command
+    print('Received command:')
+    print(command)
 
     # check length of codex_context and trim if necessary
     # get positions of each command within the string, clear all but the most recent
     if len(codex_context) > 2000:
         print('Codex prompt is getting too long! Trimming...')
         command_positions = [(m.start(), m.end()) for m in re.finditer('#.+', codex_context)]
-        codex_context = codex_context[command_positions[-1][0]:]
+        block_key_positions = [(m.start(), m.end()) for m in re.finditer("'''.+'''", codex_context)]
+        if command_positions[-1][0] > block_key_positions[-1][0]:
+            codex_context = codex_context[command_positions[-1][0]:]
+        else:
+            codex_context = codex_context[block_key_positions[-1][0]:]
+    codex_contex += '\n' + command + '\n'
 
     # call openai api using code-davinci-002 to generate code from the command
     print('Calling codex API...')
@@ -348,7 +359,7 @@ def process():
     # fails if the codeblock is empty, wrap in try-except to avoid erroring out
     try:
         lastline = codeblock.splitlines()[-1]
-        if ('=' not in lastline) and ('return' not in lastline) and ('print' not in lastline) and ('.fit' not in lastline):
+        if ('=' not in lastline) and ('return' not in lastline) and ('print' not in lastline) and ('.fit' not in lastline) and ('plt' not in lastline):
             lastline_print = 'print(' + lastline + ')'
             codeblock = codeblock.replace(lastline, lastline_print)
             print('Caught last line as a declaration, wrapping in print statement...')
@@ -429,6 +440,7 @@ def edit():
 
     # edit database entry
     record_id = request.args.get('ref')
+    newcmd = request.args.get('new_cmd')
     newcode = request.args.get('new_code')
     command, oldcode = get_log(record_id)
     [outputtype, output] = runcode_raw(newcode)
@@ -441,6 +453,7 @@ def edit():
 
     # edit codex script
     codex_context = codex_context.replace(oldcode, newcode)
+    codex_context = codex_context.replace(command, newcmd)
     print('Successfully processed and recorded edit')
     return jsonify(outputs=outputs) 
 
