@@ -203,7 +203,7 @@ h2 {
     margin-left: 3rem;
     white-space: pre-wrap;
     vertical-align: middle;
-    margin-right: 18rem;
+    display: inline-block;
 }
 
 .feedback-btns {

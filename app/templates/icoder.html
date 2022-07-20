@@ -227,6 +227,7 @@
 
             let h = $(targetdiv).css('height');
             let h2 = $(commanddiv).css('height');
+            let w2 = $(commanddiv).css('width');
 
             $(commanddiv).hide();
             $(targetdiv).hide();
@@ -234,7 +235,7 @@
             editableCmd.classList = "editcommand";
             editableCmd.id = "editcmd" + code_div_id;
             editableCmd.style.height = h2;
-            editableCmd.style.width = "100%";
+            editableCmd.style.width = w2;
             editableCmd.value = origcommand;
 
             editableText.classList = "editbox";
