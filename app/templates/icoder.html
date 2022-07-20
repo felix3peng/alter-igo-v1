@@ -212,7 +212,7 @@
         function editcode(code_div_id) {
             var targetdiv = document.getElementById('code'+code_div_id);
             var commanddiv = document.getElementById('command'+code_div_id);
-            var origcommand = commanddiv.textContent;
+            var origcommand = commanddiv.innerText;
             var origcode = targetdiv.textContent;
             var editableText = document.createElement("textarea");
             var editableCmd = document.createElement("textarea");
@@ -318,7 +318,7 @@
             newcmd.classList = "command_disp";
             newcmd.id = "command"+code_div_id;
             newcmd.appendChild(document.createElement("b"));
-            newcmd.lastChild.textContent = editedcmd;
+            newcmd.lastChild.innerText = editedcmd;
 
             targetdiv.remove();
             newdiv.classList = "collapse in";

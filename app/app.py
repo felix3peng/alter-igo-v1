@@ -296,6 +296,7 @@ def process():
     global codex_context
     print('Received command!')
     command = request.args.get('command').strip()
+    raw_command = command
     # wrap multiline commands in quotes for block comments
     if '\n' in command:
         command = "'''\n" + command + "\n'''"
@@ -371,7 +372,7 @@ def process():
     # strip leading and trailing whitespaces if included
     codex_context += codeblock + '\n'
     [outputtype, output] = runcode_raw(codeblock)
-    outputs = [outputtype, command, codeblock, output]
+    outputs = [outputtype, raw_command, codeblock, output]
 
     # write updated codex_context to file
     print('Updating codex prompt...')
