@@ -315,7 +315,7 @@ def process():
             codex_context = codex_context[command_positions[-1][0]:]
         else:
             codex_context = codex_context[block_key_positions[-1][0]:]
-    codex_contex += '\n' + command + '\n'
+    codex_context += '\n' + command + '\n'
 
     # call openai api using code-davinci-002 to generate code from the command
     print('Calling codex API...')
