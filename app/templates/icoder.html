@@ -30,7 +30,7 @@
                 }, function(data){
                     var wrapper_id = "wrapper" + data.outputs[4];
                     $('.content').append('<div id="' + wrapper_id + '" class="wrapper"></div>');
-                    $('#' + wrapper_id).append('<div class="commandwrapper"><div class="numlabel">['+i+']: </div><div class="command_disp" id="command'+data.outputs[4]+'"><b>'+data.outputs[1]+'</b></div><div class="feedback-btns"><button class="thumbsup" id="thumbsup'+data.outputs[4]+'" type="button" onclick="positive('+data.outputs[4]+')" title="This worked well"><i class="bx bx-like"></i></button><button class="thumbsdown" id="thumbsdown'+data.outputs[4]+'" type="button" onclick="negative('+data.outputs[4]+')" title="This did not work well"><i class="bx bx-dislike"></i></button><button class="edit" id="edit'+i+'" type="button" onclick="editcode('+i+')"><i class="bx bx-edit"></i></button><button class="delete" id="delete'+data.outputs[4]+'" type="button" onclick="deleteentry('+data.outputs[4]+')"><i class="bx bx-trash"></i></button></div></div></div>');
+                    $('#' + wrapper_id).append('<div class="commandwrapper"><div class="numlabel">['+i+']: </div><div class="command_disp" id="command'+i+'"><b>'+data.outputs[1]+'</b></div><div class="feedback-btns"><button class="thumbsup" id="thumbsup'+data.outputs[4]+'" type="button" onclick="positive('+data.outputs[4]+')" title="This worked well"><i class="bx bx-like"></i></button><button class="thumbsdown" id="thumbsdown'+data.outputs[4]+'" type="button" onclick="negative('+data.outputs[4]+')" title="This did not work well"><i class="bx bx-dislike"></i></button><button class="edit" id="edit'+i+'" type="button" onclick="editcode('+i+')"><i class="bx bx-edit"></i></button><button class="delete" id="delete'+data.outputs[4]+'" type="button" onclick="deleteentry('+data.outputs[4]+')"><i class="bx bx-trash"></i></button></div></div></div>');
                     if (document.getElementById('checkbox').checked) {
                         $('#' + wrapper_id).append("<div class='codewrapper'><button data-toggle='collapse' class='cobutton' data-target='#code"+i+"'></button><div class='collapse in' id='code"+i+"'><pre><code class='language-python'>"+data.outputs[2]+"</code></pre></div></div>");
                     } else if (data.outputs[3] == "") {
@@ -379,8 +379,11 @@
     <script>
         function editcancel(code_div_id) {
             var targetdiv = document.getElementById('code'+code_div_id);
+            var commanddiv = document.getElementById('command'+code_div_id);
             var origcode = targetdiv.textContent;
+            var origcmd = commanddiv.innerText;
             var editbox = document.getElementById("editcode"+code_div_id);
+            var editcmd = document.getElementById("editcmd"+code_div_id);
             var confirmButton = document.getElementById('confirm'+code_div_id);
             var cancelButton = document.getElementById('cancel'+code_div_id);
             var editButton = document.createElement("button");
@@ -394,7 +397,9 @@
             confirmButton.replaceWith(editButton);
             cancelButton.remove();
             editbox.remove();
+            editcmd.remove();
             $(targetdiv).show();
+            $(commanddiv).show();
             hljs.highlightAll();
         }
     </script>
