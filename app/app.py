@@ -312,10 +312,13 @@ def process():
         print('Codex prompt is getting too long! Trimming...')
         command_positions = [(m.start(), m.end()) for m in re.finditer('#.+', codex_context)]
         block_key_positions = [(m.start(), m.end()) for m in re.finditer("'''.+'''", codex_context)]
-        if command_positions[-1][0] > block_key_positions[-1][0]:
-            codex_context = codex_context[command_positions[-1][0]:]
+        if len(block_key_positions) > 0:
+            if command_positions[-1][0] > block_key_positions[-1][0]:
+                codex_context = codex_context[command_positions[-1][0]:]
+            else:
+                codex_context = codex_context[block_key_positions[-1][0]:]
         else:
-            codex_context = codex_context[block_key_positions[-1][0]:]
+            codex_context = codex_context[command_positions[-1][0]:]
     codex_context += '\n' + command + '\n'
 
     # call openai api using code-davinci-002 to generate code from the command
